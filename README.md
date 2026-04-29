@@ -91,6 +91,8 @@ Copies the addon into your local `_anniversary_` client (see script for `GCM_WOW
 
 Builds `dist/GuildCoreMatrix-<version>.zip` (CurseForge layout). Automatic builds from Git can use `.pkgmeta` plus a [CurseForge repository webhook](https://support.curseforge.com/support/solutions/articles/9000197281-automatic-packaging).
 
+Pushing to the default branch triggers that packaging flow when the webhook and token are set on GitHub and CurseForge. Check **Files** on the project after a minute; use GitHub **Webhooks → Recent Deliveries** if nothing appears.
+
 ---
 
 ## Author
