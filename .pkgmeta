@@ -1,0 +1,8 @@
+package-as: GuildCoreMatrix
+enable-nolib-creation: no
+
+ignore:
+    - install.sh
+    - package.sh
+    - dist
+    - AGENTS.md
