@@ -1,0 +1,28 @@
+## Interface: 20505
+## Title: |cffff0000Jefe de Guerra|r - Gestión de Cores
+## Notes: Management system for 10/25-man cores.
+## Author: Hugo Gutierrez (Jefe de Guerra)
+## Version: 1.4.4
+## X-Curse-Project-ID: 1528360
+## SavedVariables: GCM_Settings, GCM_Sync
+## SavedVariablesPerCharacter: GCM_Cache
+
+Modules\Locale.lua
+Locales\enUS.lua
+Locales\esES.lua
+Locales\esMX.lua
+Modules\Database.lua
+Modules\Scanner.lua
+Modules\Notes.lua
+Modules\Comms.lua
+Modules\Schedule.lua
+Modules\Signups.lua
+Modules\Specs.lua
+Modules\UI_Elements.lua
+Modules\UI_Main.lua
+Modules\UI_Member.lua
+Modules\UI_FilterBar.lua
+Modules\UI_Schedule.lua
+Modules\UI_CoreList.lua
+Modules\UI_Minimap.lua
+Core.lua
