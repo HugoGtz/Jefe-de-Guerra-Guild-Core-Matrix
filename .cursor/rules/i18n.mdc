@@ -1,0 +1,66 @@
+---
+description: Localization (i18n) conventions for GuildCoreMatrix
+alwaysApply: true
+---
+
+# Localization
+
+The addon ships its own lightweight locale system. **No Ace3 / AceLocale.**
+
+## Files
+
+- `Modules/Locale.lua` — registry, metatable fallback, `Activate`, `RunCallbacks`,
+  alias support. Loads first (before any locale data and any UI).
+- `Locales/enUS.lua` — required base. Every key the addon uses MUST exist here.
+  All other locales fall back to this one.
+- `Locales/esES.lua` — Spanish (Spain).
+- `Locales/esMX.lua` — alias of `esES` via `ns.Locale:RegisterAlias`.
+
+Add a new locale by creating `Locales/<code>.lua` and registering it in the
+TOC right after the existing locales.
+
+## Runtime contract
+
+- Strings are accessed through `ns.L.SOME_KEY` (or `ns.L["SOME_KEY"]`).
+- `ns.L` has a metatable that returns the key itself if the string is missing,
+  so the UI never crashes — it just shows the raw key, which makes missing
+  translations visible.
+- `ns.Locale:Activate()` must run inside `ADDON_LOADED` for the addon, AFTER
+  `ns.Database:Initialize()` (so `GCM_Settings.locale` is available) and
+  BEFORE `ns.Database:ApplyDefaultSchedules()` (so default schedules pick up
+  the active locale).
+- Modules with UI text register a callback via
+  `ns.Locale:RegisterCallback(fn)` to (re)apply localized strings. Callbacks
+  run after `Activate` and again after `/gcmlang` switches the language at
+  runtime.
+
+## Coding rules
+
+- **Never** hardcode user-facing strings inside Lua modules. Always go through
+  `ns.L.<KEY>`.
+- Keys are SCREAMING_SNAKE_CASE, English, descriptive (`SCHEDULE_UPDATED`, not
+  `MSG1`).
+- `string.format` placeholders go inside the locale value. Document the order
+  of arguments via the key name when ambiguous (e.g. `LABEL_CORE_ROW = "%s Core %d:"`).
+- Color codes (`|cffXXXXXX...|r`) belong in the locale value when they carry
+  branding (e.g. `BRAND`, `BRAND_GREEN`). At call sites use string concat:
+  `print(ns.L.BRAND .. " " .. ns.L.LOGIN_READY)`.
+- The `Locales/*.lua` files are the **only** Lua files allowed to contain
+  non-English text. Everything else (variable names, function names, keys,
+  log keys) stays in English.
+
+## Adding a new string
+
+1. Add the key to `Locales/enUS.lua` with the English value.
+2. Add the same key to every other locale file with its translation. Missing
+   keys fall back to enUS automatically; aliases (e.g. esMX → esES) inherit
+   for free.
+3. Reference it from code as `ns.L.YOUR_KEY`.
+
+## Switching language
+
+- Auto: `GetLocale()` is read on `Activate`.
+- Manual: `/gcmlang <code>` sets `GCM_Settings.locale` and re-runs callbacks.
+- Reset: `/gcmlang reset` clears the override.
+- A `/reload` is recommended after switching to fully refresh frame text that
+  may not be wired to a callback yet.

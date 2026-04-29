@@ -1,0 +1,34 @@
+---
+description: Local dev workflow for syncing the addon into the WoW client
+alwaysApply: true
+---
+
+# Workflow
+
+## Sync to client
+
+`install.sh` rsyncs the repo into:
+
+```
+/Volumes/so/World of Warcraft/_anniversary_/Interface/AddOns/GuildCoreMatrix
+```
+
+Excludes: `.git/`, `.gemini/`, `.cursor/`, `install.sh`.
+
+After running it, use `/reload` in-game (or `/console reloadui`) to pick up
+changes. For TOC or SavedVariables changes, fully exit and relaunch the
+client.
+
+## In-game testing
+
+- Slash command: `/gcm` toggles the main frame.
+- Minimap button toggles the same frame.
+- `SYNC` button in the title bar forces `C_GuildInfo.GuildRoster()` and a
+  rescan.
+
+## When editing
+
+- Keep `install.sh` excludes in sync if a new top-level dir is added that
+  should NOT ship to the client.
+- If a new module is added, register it in `GuildCoreMatrix.toc` in the
+  correct load order (Database → Scanner → Calendar → UI_*  → Core).

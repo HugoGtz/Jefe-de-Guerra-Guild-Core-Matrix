@@ -1,0 +1,69 @@
+---
+description: GuildCoreMatrix project context, target client, and architecture
+alwaysApply: true
+---
+
+# GuildCoreMatrix — Project Context
+
+Senior WoW Addon Architect working on **GuildCoreMatrix**, a guild management
+addon that organizes 10-man (Karazhan) and 25-man (Gruul / Magtheridon) cores
+through a hybrid system based on Officer / Public Notes plus optional static
+data sheets.
+
+## Target client
+
+- **WoW 2.5.5 — TBC Anniversary** running the modern Retail-based engine.
+- TOC `## Interface: 20505`. Do NOT use Classic Era (`113xx`) or Retail (`110xxx`) APIs.
+- Lua **5.1** semantics (no `goto continue`, no integer division `//`, no bitwise operators outside `bit` lib).
+
+## Architecture rules
+
+- Private namespace pattern at the top of every file:
+  `local addonName, ns = ...`
+- All modules attach to `ns` (e.g. `ns.Database`, `ns.Scanner`, `ns.UI`).
+- UI uses `BackdropTemplate` mixin. **Never** use XML.
+- Event handling goes through a single Event Dispatcher in `Core.lua`. Modules
+  expose methods that the dispatcher calls; modules do not register their own
+  global events unless strictly local (e.g. `PLAYER_LOGIN` for one-shot init).
+- Data flows: Scanner → `ns.Cache` → UI refresh via `ns.UI:Refresh()`.
+
+## Data schema (Officer / Public Notes)
+
+Non-destructive regex parsing. Pattern: `[<TypeId>,<TypeId>...]` where
+`Type` is one of:
+
+- `k` → Karazhan 10m core
+- `K` → Karazhan 25m core (uppercase)
+- `G` → Gruul / Magtheridon 25m core
+
+Each token may carry an optional role suffix: `:T` (Tank), `:H` (Healer), `:D` (DPS).
+
+Example: `[K1:T,G2:H]` → Kara 10m core 1 as tank, Gruul core 2 as healer.
+
+**Hard constraint**: Officer Notes have a **31-character limit**. Any feature
+that writes back to notes must validate length before `GuildRosterSetOfficerNote`.
+
+## Files of record
+
+- `GuildCoreMatrix.toc` — load order, SavedVariables (`GCM_Settings`, `GCM_Cache`).
+- `Core.lua` — Event Dispatcher only.
+- `Modules/Locale.lua` — i18n registry + activation + callbacks. Loads first.
+- `Locales/<code>.lua` — locale data (`enUS` is the required fallback).
+- `Modules/Database.lua` — SavedVariables init (minimap pos, locale override).
+- `Modules/Scanner.lua` — note parser, throttled (2s).
+- `Modules/UI_Elements.lua` — class color / class icon / role icon / online dot / last-seen format helpers.
+- `Modules/UI_Main.lua` — main frame (resizable, persisted) + slash commands (`/gcm [reset]`, `/gcmlang`).
+- `Modules/UI_Member.lua` — member row mixin: tooltip, online dot, right-click menu (Invite / Whisper / Copy).
+- `Modules/UI_FilterBar.lua` — search box + role/online toggles. Exposes `ns.UI.Filter` state and `:Matches(member)`.
+- `Modules/UI_CoreList.lua` — card list with composition badge, warning border, collapse, "Invite all", and "Unassigned" section.
+- `Modules/UI_Minimap.lua` — minimap toggle button.
+- `Media/logo.tga` — addon icon.
+
+See `i18n.mdc` for the localization contract and `wow-uiux-designer.mdc` for
+visual conventions.
+
+## Out of scope
+
+- No external dependencies (no Ace3, no LibStub) unless explicitly requested.
+- No XML files.
+- No retail-only APIs (no `C_ChallengeMode`, no `C_MythicPlus`, etc.).

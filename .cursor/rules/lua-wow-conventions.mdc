@@ -1,0 +1,60 @@
+---
+description: Lua 5.1 / WoW 2.5.5 API conventions for GuildCoreMatrix
+globs: **/*.lua
+alwaysApply: false
+---
+
+# Lua / WoW API conventions
+
+## Language
+
+- Lua **5.1** only. No `goto`, no bitwise ops outside `bit` library, no `//`.
+- `local` everything. Never create globals except documented frame names
+  (`GCM_MainFrame`, `GCM_MinimapButton`) and SavedVariables (`GCM_Settings`,
+  `GCM_Cache`).
+- Use `string.format` (lowercase). `string.Format` does not exist and will
+  raise at runtime.
+
+## Code style
+
+- No comments anywhere.
+- All identifiers, log strings, error messages, and embedded text in **English**.
+  User-facing strings shown in the WoW UI may stay in Spanish if they already
+  exist that way, but new strings should be English unless the user states
+  otherwise.
+- No mixing of Spanish and English in a single string.
+- No docstrings, no block comments, no inline `--` explanations.
+
+## Frame creation
+
+- Always pass an explicit parent. Top-level frames parent to `UIParent`.
+- Use `BackdropTemplate` for any frame calling `SetBackdrop`. Without the
+  mixin, `SetBackdrop` is nil on Retail-engine clients (including 2.5.5).
+- Reuse frames; do not create frames inside `OnUpdate` or scan loops.
+
+## Events
+
+- Register events on a single dispatcher frame in `Core.lua` when possible.
+- Throttle expensive scans (`ParseGuildNotes` uses `GetTime()` 2s gate).
+- Always guard guild APIs with `IsInGuild()`.
+
+## Strings and notes
+
+- Officer Note writes must respect the **31-character limit**.
+- Use `Ambiguate(name, "none")` to strip realm suffix before keying caches.
+- Parse with `gmatch`, never with `string.find` in a loop without an offset.
+
+## Anti-patterns to reject
+
+```lua
+-- WRONG
+string.Format("%s", x)          -- capital F, runtime error
+for i = 1, #t do ... end        -- fine, but use ipairs/pairs for clarity
+local f = CreateFrame("Frame")  -- missing parent
+f:SetBackdrop({...})            -- frame lacks BackdropTemplate
+
+-- RIGHT
+string.format("%s", x)
+local f = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+f:SetBackdrop({...})
+```
