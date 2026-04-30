@@ -43,12 +43,11 @@ local UI = {
         TOOLTIP_BORDER = "Interface\\Tooltips\\UI-Tooltip-Border",
     },
     TYPE_COLOR = {
-        k = { 0.45, 0.78, 1.00, 1 },
-        K = { 0.30, 0.45, 1.00, 1 },
-        G = { 1.00, 0.35, 0.35, 1 },
+        C = { 0.45, 0.78, 1.00, 1 },
+        B = { 0.82, 0.72, 0.38, 1 },
         U = { 0.55, 0.55, 0.60, 1 },
     },
-    TARGET = { k = 10, K = 25, G = 25 },
+    TARGET = { C = 25 },
 }
 
 local function ApplyMixin(target, mixin)
@@ -234,10 +233,9 @@ function CoreCardMixin:HideRowsFrom(index)
 end
 
 function CoreCardMixin:GetRaidLabel(typeCode)
-    if typeCode == "k" then return ns.L.LABEL_KARA10 end
-    if typeCode == "K" then return ns.L.LABEL_KARA25 end
     if typeCode == "U" then return ns.L.UNASSIGNED_TITLE end
-    return ns.L.LABEL_GRUULMAG
+    if typeCode == "B" then return ns.L.LABEL_BENCH end
+    return ns.L.LABEL_CORE
 end
 
 local function CountOnline(members)
@@ -249,12 +247,26 @@ end
 function CoreCardMixin:Update(typeCode, coreId, members, opts)
     opts = opts or {}
     self.collapseKey = opts.collapseKey
-    self.accent:SetVertexColor(unpack(UI.TYPE_COLOR[typeCode] or UI.TYPE_COLOR.G))
+    self.accent:SetVertexColor(unpack(UI.TYPE_COLOR[typeCode] or UI.TYPE_COLOR.C))
 
     if opts.title then
         self.title:SetText(opts.title)
     elseif coreId then
-        self.title:SetText(string.format("%s  Core %d", self:GetRaidLabel(typeCode), coreId))
+        if typeCode == "B" then
+            local nick = ns.Scanner and ns.Scanner.GetCoreDisplayName and ns.Scanner:GetCoreDisplayName(typeCode, coreId)
+            if nick and nick ~= "" then
+                self.title:SetText(string.format("%s · %s", ns.L.LABEL_BENCH, nick))
+            else
+                self.title:SetText(ns.L.LABEL_BENCH)
+            end
+        else
+            local nick = ns.Scanner and ns.Scanner.GetCoreDisplayName and ns.Scanner:GetCoreDisplayName(typeCode, coreId)
+            if nick and nick ~= "" then
+                self.title:SetText(string.format("%s %d · %s", ns.L.LABEL_CORE, coreId, nick))
+            else
+                self.title:SetText(string.format("%s %d", ns.L.LABEL_CORE, coreId))
+            end
+        end
     else
         self.title:SetText(self:GetRaidLabel(typeCode))
     end
@@ -283,18 +295,26 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         local t, h, d, u = ComputeComposition(members)
         self.composition:SetText(FormatComposition(t, h, d, u))
 
-        local leaderName, leaderClass
+        local leads = {}
         for _, m in ipairs(members) do
-            if m.lead then
-                leaderName, leaderClass = m.name, m.class
-                break
-            end
+            if m.lead then leads[#leads + 1] = m end
         end
-        if leaderName then
-            local cr, cg, cb = ns.UI:GetClassColor(leaderClass)
-            local short = leaderName
-            if #short > 14 then short = short:sub(1, 13) .. "..." end
-            self.leader:SetText(string.format("|cffffd100Lead:|r |cff%02x%02x%02x%s|r", math.floor(cr*255), math.floor(cg*255), math.floor(cb*255), short))
+        table.sort(leads, function(a, b) return a.name < b.name end)
+        if #leads > 0 then
+            local maxShow = 4
+            local parts = {}
+            for i = 1, math.min(#leads, maxShow) do
+                local m = leads[i]
+                local cr, cg, cb = ns.UI:GetClassColor(m.class)
+                local short = m.name
+                if #short > 10 then short = short:sub(1, 9) .. "." end
+                parts[#parts + 1] = string.format("%s |cff%02x%02x%02x%s|r", ns.UI:GetRaidLeadIcon(), math.floor(cr * 255), math.floor(cg * 255), math.floor(cb * 255), short)
+            end
+            local extra = #leads - maxShow
+            if extra > 0 then
+                parts[#parts + 1] = string.format("|cff666666+%d|r", extra)
+            end
+            self.leader:SetText("|cffffd100" .. ns.L.CARD_LEADS_PREFIX .. "|r " .. table.concat(parts, " "))
             self.title:ClearAllPoints()
             self.title:SetPoint("LEFT", self.toggle, "RIGHT", 6, 0)
             self.title:SetPoint("RIGHT", self.leader, "LEFT", -10, 0)
@@ -306,7 +326,10 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         end
 
         local warnLevel = GetWarningLevel(typeCode, members, t, h)
-        if warnLevel == "crit" then
+        if typeCode == "B" then
+            self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER))
+            self.warning:SetText("")
+        elseif warnLevel == "crit" then
             self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER_CRIT))
             self.warning:SetTextColor(unpack(UI.COLOR.CARD_BORDER_CRIT))
             self.warning:SetText(t == 0 and ns.L.WARN_NO_TANK or ns.L.WARN_NO_HEALER)
@@ -349,7 +372,7 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
             self.editScheduleBtn:SetText(ns.L.SCHED_EDIT_BTN)
             self.editScheduleBtn:Show()
             self.editScheduleBtn:SetScript("OnClick", function()
-                ns.UI:OpenScheduleEditor(typeCode, coreId, self:GetRaidLabel(typeCode))
+                ns.UI:OpenScheduleEditor(typeCode, coreId)
             end)
         else
             self.editScheduleBtn:Hide()
@@ -400,9 +423,9 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
                 end
             end
             if invited > 0 then
-                print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.INVITE_LOG, invited, self:GetRaidLabel(typeCode), coreId or 0))
+                print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.INVITE_LOG, invited, coreId or 0))
             else
-                print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.INVITE_NONE, self:GetRaidLabel(typeCode), coreId or 0))
+                print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.INVITE_NONE, coreId or 0))
             end
         end)
     end
@@ -513,7 +536,7 @@ function ns.UI:RefreshCoreList()
     Scroll:Show()
 
     local discovered = ns.Scanner:GetDiscoveredCores()
-    local order = { "k", "K", "G" }
+    local order = { "C", "B" }
     local idx = 0
     local yOffset = 0
     local panelWidth = Scroll:GetWidth() - 4

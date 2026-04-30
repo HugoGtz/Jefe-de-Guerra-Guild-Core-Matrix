@@ -39,15 +39,20 @@ function ns.Signups:CountForSlot(coreKey, slotIdx)
     local states = self:GetStates(coreKey, slotIdx)
     if not ns.Cache then return out end
 
-    local typeCode, coreId = coreKey:match("^([kKG])(%d+)$")
-    coreId = tonumber(coreId)
+    local typeCode, coreNum = coreKey:match("^([CB])(%d+)$")
+    local coreId = tonumber(coreNum)
+    if not coreId or not typeCode then
+        local _, num = coreKey:match("^([kKG])(%d+)$")
+        coreId = tonumber(num)
+        typeCode = "C"
+    end
 
     for name, state in pairs(states) do
         if state == "yes" then
             out.yes = out.yes + 1
             local entry = ns.Cache[name]
             local list = entry and entry.cores and entry.cores[typeCode]
-            local data = list and list[coreId]
+            local data = list and coreId and list[coreId]
             local role
             if type(data) == "table" then role = data.role end
             if role and out.byRole[role] then

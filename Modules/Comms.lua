@@ -1,4 +1,4 @@
-local _, ns = ...
+local addonName, ns = ...
 ns.Comms = ns.Comms or {}
 
 local PREFIX = "GCM"
@@ -6,10 +6,13 @@ local PROTO_VER = 1
 local MAX_BODY = 240
 local CHUNK_SIZE = 200
 local DEFAULT_THROTTLE = 2.0
+local HELLO_INTERVAL = 180
+local PEER_STALE_SEC = 720
 
 ns.Comms.lastSent = {}
 ns.Comms.handlers = {}
 ns.Comms.pendingReceive = {}
+ns.Comms.peerAddon = {}
 
 local function SendMsg(prefix, body, channel)
     if C_ChatInfo and C_ChatInfo.SendAddonMessage then
@@ -112,8 +115,67 @@ function ns.Comms:Receive(message, channel, sender)
     if handler then handler(rest, sender, channel) end
 end
 
+function ns.Comms:RecordPeer(sender, version)
+    sender = Ambiguate(sender or "", "none")
+    if sender == "" then return end
+    version = tostring(version or ""):gsub("|", ""):sub(1, 24)
+    self.peerAddon[sender] = { t = GetTime(), v = version }
+end
+
+function ns.Comms:PeerShowsAddonBadge(memberName)
+    local me = UnitName("player")
+    local n = Ambiguate(memberName or "", "none")
+    if me and n == Ambiguate(me, "none") then return true end
+    local p = self.peerAddon[n]
+    if not p then return false end
+    if (GetTime() - p.t) > PEER_STALE_SEC then return false end
+    return true
+end
+
+function ns.Comms:PeerAddonTooltipVersion(memberName)
+    local me = UnitName("player")
+    local n = Ambiguate(memberName or "", "none")
+    if me and n == Ambiguate(me, "none") then return self.addonVersion or "?" end
+    local p = self.peerAddon[n]
+    if not p or (GetTime() - p.t) > PEER_STALE_SEC then return nil end
+    if p.v and p.v ~= "" then return p.v end
+    return "?"
+end
+
+function ns.Comms:PushHello()
+    if not IsInGuild() then return end
+    local v = (self.addonVersion or "?"):gsub("|", ""):sub(1, 24)
+    if v == "" then v = "?" end
+    local body = string.format("%d|HELLO|%s", PROTO_VER, v)
+    SendMsg(PREFIX, body, "GUILD")
+end
+
+local function SchedulePeerUiRefresh(self)
+    if self._peerUiRefreshPending then return end
+    self._peerUiRefreshPending = true
+    local function fire()
+        self._peerUiRefreshPending = nil
+        if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
+    end
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0.25, fire)
+    else
+        fire()
+    end
+end
+
 function ns.Comms:Init()
     RegisterPrefix(PREFIX)
+    do
+        local v
+        if C_AddOns and C_AddOns.GetAddOnMetadata then
+            v = C_AddOns.GetAddOnMetadata(addonName, "Version")
+        end
+        if (not v or v == "") and GetAddOnMetadata then
+            v = GetAddOnMetadata(addonName, "Version")
+        end
+        self.addonVersion = (v and v ~= "") and v:gsub("|", ""):sub(1, 24) or "?"
+    end
     if not self.frame then
         self.frame = CreateFrame("Frame")
         self.frame:RegisterEvent("CHAT_MSG_ADDON")
@@ -122,8 +184,20 @@ function ns.Comms:Init()
         end)
     end
 
+    self:RegisterHandler("HELLO", function(payload, sender, ch)
+        if ch ~= "GUILD" then return end
+        ns.Comms:RecordPeer(sender, payload)
+        SchedulePeerUiRefresh(ns.Comms)
+    end)
+
     self:RegisterHandler("RESCAN", function()
         if ns.Scanner and ns.Scanner.ResetThrottle then ns.Scanner:ResetThrottle() end
         if ns.Scanner and ns.Scanner.ParseGuildNotes then ns.Scanner:ParseGuildNotes() end
     end)
+
+    if not self.helloTicker and C_Timer and C_Timer.NewTicker then
+        self.helloTicker = C_Timer.NewTicker(HELLO_INTERVAL, function()
+            if IsInGuild() then ns.Comms:PushHello() end
+        end)
+    end
 end

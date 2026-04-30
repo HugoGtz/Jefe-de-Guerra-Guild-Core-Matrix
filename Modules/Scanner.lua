@@ -8,23 +8,14 @@ function ns.Scanner:ResetThrottle()
 end
 
 local function ParseCoresFromNotes(combined)
-    local cores = {}
-    local count = 0
-    if not combined or combined == "" then return cores, count end
-    for bracket in combined:gmatch("%[([^%]]+)%]") do
-        for typeCode, coreId, role, lead in bracket:gmatch("([KkG])%s*(%d+):?([THD]?)(%*?)") do
-            cores[typeCode] = cores[typeCode] or {}
-            cores[typeCode][tonumber(coreId)] = {
-                role = (role ~= "" and role) or nil,
-                lead = lead == "*",
-            }
-            count = count + 1
-        end
+    if ns.Notes and ns.Notes.ParseCoresFromCombined then
+        return ns.Notes:ParseCoresFromCombined(combined)
     end
-    return cores, count
+    return {}, 0
 end
 
-function ns.Scanner:ParseGuildNotes()
+function ns.Scanner:ParseGuildNotes(opts)
+    opts = opts or {}
     if not IsInGuild() then return end
 
     local now = GetTime()
@@ -43,7 +34,7 @@ function ns.Scanner:ParseGuildNotes()
         if name then
             local cleanName = Ambiguate(name, "none")
             local years, months, days, hours = GetGuildRosterLastOnline(i)
-            local combined = (publicNote or "") .. " " .. (officerNote or "")
+            local combined = officerNote or ""
             local cores, count = ParseCoresFromNotes(combined)
 
             ns.Cache[cleanName] = {
@@ -62,10 +53,18 @@ function ns.Scanner:ParseGuildNotes()
 
     ns.Scanner.lastScanTime = time()
 
-    if foundCount > 0 then
-        print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.SCAN_SUCCESS, foundCount))
-    elseif rosterSize > 0 then
-        print(ns.L.BRAND_YELLOW .. " " .. ns.L.SCAN_NO_MATCHES)
+    local prevFound = ns.Scanner._lastFoundCount
+    ns.Scanner._lastFoundCount = foundCount
+
+    if rosterSize > 0 then
+        local chat = opts.verbose == true or prevFound ~= foundCount
+        if chat then
+            if foundCount > 0 then
+                print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.SCAN_SUCCESS, foundCount))
+            else
+                print(ns.L.BRAND_YELLOW .. " " .. ns.L.SCAN_NO_MATCHES)
+            end
+        end
     end
 
     if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
@@ -107,7 +106,6 @@ function ns.Scanner:GetMembersForCore(typeCode, coreId)
                 role = role,
                 lead = lead,
                 hasConflict = list and CountKeys(list) > 1,
-                conflictType = typeCode,
                 conflictCount = list and CountKeys(list) or 0,
             }
         end
@@ -154,7 +152,7 @@ function ns.Scanner:GetUnassignedMembers()
 end
 
 function ns.Scanner:GetDiscoveredCores()
-    local out = { k = {}, K = {}, G = {} }
+    local out = {}
     if not ns.Cache then return out end
     for _, entry in pairs(ns.Cache) do
         if entry.cores then
@@ -167,6 +165,20 @@ function ns.Scanner:GetDiscoveredCores()
         end
     end
     return out
+end
+
+function ns.Scanner:GetCoreDisplayName(typeCode, coreId)
+    coreId = tonumber(coreId)
+    typeCode = typeCode or "C"
+    if not ns.Cache or not coreId then return nil end
+    for _, entry in pairs(ns.Cache) do
+        local list = entry.cores and entry.cores[typeCode]
+        local cell = list and list[coreId]
+        if type(cell) == "table" and cell.displayName and cell.displayName ~= "" then
+            return cell.displayName
+        end
+    end
+    return nil
 end
 
 function ns.Scanner:HasAnyDiscovered()

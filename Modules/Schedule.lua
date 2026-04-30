@@ -15,12 +15,8 @@ local function SanitizeNotes(s)
 end
 
 function ns.Schedule:CoreKey(typeCode, coreId)
+    if typeCode == "B" then coreId = 1 end
     return string.format("%s%d", tostring(typeCode), tonumber(coreId) or 0)
-end
-
-local function ParseCoreKey(key)
-    local typeCode, coreId = key:match("^([kKG])(%d+)$")
-    return typeCode, tonumber(coreId)
 end
 
 function ns.Schedule:Get(coreKey)

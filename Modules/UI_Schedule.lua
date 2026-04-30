@@ -247,7 +247,7 @@ local function InstallMethods(editor)
     end
 end
 
-function ns.UI:OpenScheduleEditor(typeCode, coreId, typeLabel)
+function ns.UI:OpenScheduleEditor(typeCode, coreId)
     if not ns.Notes or not ns.Notes:CanEditUI() then return end
     if not Editor then
         Editor = CreateEditor()
@@ -257,7 +257,7 @@ function ns.UI:OpenScheduleEditor(typeCode, coreId, typeLabel)
     Editor.typeCode = typeCode
     Editor.coreId = coreId
 
-    Editor.title:SetText(string.format(ns.L.SCHED_EDIT_TITLE, typeLabel or typeCode, coreId))
+    Editor.title:SetText(string.format(ns.L.SCHED_EDIT_TITLE, coreId))
     Editor.subtitle:SetText(ns.L.SCHED_EDIT_HINT)
     Editor.addBtn:SetText("+ " .. ns.L.SCHED_ADD_SLOT)
     Editor.saveBtn:SetText(ns.L.BTN_SAVE)

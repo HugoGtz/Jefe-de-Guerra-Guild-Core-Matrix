@@ -7,6 +7,17 @@ function ns.UI:GetClassColor(className)
     return 1, 1, 1
 end
 
+function ns.UI:SetClassCircleTexture(texture, className)
+    local coords = CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[className]
+    texture:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+    if coords then
+        texture:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+        texture:Show()
+    else
+        texture:Hide()
+    end
+end
+
 function ns.UI:GetClassIcon(className)
     local coords = CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[className]
     if coords then
@@ -27,6 +38,14 @@ function ns.UI:GetRoleIcon(role)
         return "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t"
     end
     return ""
+end
+
+function ns.UI:GetRaidLeadIcon()
+    return "|TInterface\\GROUPFRAME\\UI-GROUP-LeaderIcon:14:14:0:0|t"
+end
+
+function ns.UI:GetAddonPeerIcon()
+    return "|TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t"
 end
 
 function ns.UI:GetOnlineColor(online)

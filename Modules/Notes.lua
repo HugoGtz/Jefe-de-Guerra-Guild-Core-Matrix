@@ -2,26 +2,174 @@ local addonName, ns = ...
 ns.Notes = {}
 
 local MAX_NOTE_LENGTH = 31
+local MAX_CORE_NAME_LEN = 6
 
-local TYPE_ORDER = { k = 1, K = 2, G = 3 }
+local TYPE_ORDER = { C = 1, B = 2 }
+
+local function TrimSegment(s)
+    return (s:gsub("^%s+", ""):gsub("%s+$", ""))
+end
+
+local function ClampCoreName(raw)
+    if not raw or raw == "" then return nil end
+    local only = raw:match("^([A-Za-z0-9]+)") or ""
+    if #only > MAX_CORE_NAME_LEN then only = only:sub(1, MAX_CORE_NAME_LEN) end
+    if only == "" then return nil end
+    return only
+end
+
+function ns.Notes:ParseCoreSegment(seg)
+    seg = TrimSegment(seg or "")
+    if seg == "" then return nil end
+
+    local lead = seg:match("%*%s*$") ~= nil
+    if lead then seg = seg:gsub("%*%s*$", "") end
+
+    local bWhole = seg:match("^[Bb]%s*(.*)$")
+    if bWhole ~= nil then
+        local rest = bWhole
+        local digits, afterDigits = rest:match("^(%d+)(.*)$")
+        if digits then
+            rest = afterDigits or ""
+        end
+        rest = rest or ""
+        if rest ~= "" and rest:sub(1, 1) == ":" then rest = rest:sub(2) end
+        local role, displayName = nil, nil
+        if rest ~= "" then
+            local parts = {}
+            for piece in rest:gmatch("[^:]+") do parts[#parts + 1] = piece end
+            if #parts == 1 then
+                local p = parts[1]
+                if p == "T" or p == "H" or p == "D" then
+                    role = p
+                else
+                    displayName = ClampCoreName(p)
+                end
+            elseif #parts >= 2 then
+                displayName = ClampCoreName(parts[1])
+                local last = parts[#parts]
+                if last == "T" or last == "H" or last == "D" then role = last end
+            end
+        end
+        return { typeCode = "B", coreId = 1, role = role, lead = lead, displayName = displayName }
+    end
+
+    local lt, lid, lrole = seg:match("^([kKgG])%s*(%d+):?([THD]?)$")
+    if lt and lid then
+        return {
+            typeCode = "C",
+            coreId = tonumber(lid),
+            role = (lrole and lrole ~= "") and lrole or nil,
+            lead = lead,
+            displayName = nil,
+        }
+    end
+
+    lt, lid, lrole = seg:match("^([kKgG])%s*(%d+)([THD])$")
+    if lt and lid and lrole then
+        return { typeCode = "C", coreId = tonumber(lid), role = lrole, lead = lead, displayName = nil }
+    end
+
+    local coreId, tail = seg:match("^[Cc]%s*(%d+)(.*)$")
+    if not coreId then return nil end
+    coreId = tonumber(coreId)
+    tail = tail or ""
+
+    local role, displayName = nil, nil
+    if tail ~= "" then
+        if tail:sub(1, 1) == ":" then tail = tail:sub(2) end
+        local parts = {}
+        for piece in tail:gmatch("[^:]+") do parts[#parts + 1] = piece end
+        if #parts == 1 then
+            local p = parts[1]
+            if p == "T" or p == "H" or p == "D" then
+                role = p
+            else
+                displayName = ClampCoreName(p)
+            end
+        elseif #parts >= 2 then
+            displayName = ClampCoreName(parts[1])
+            local last = parts[#parts]
+            if last == "T" or last == "H" or last == "D" then role = last end
+        end
+    end
+
+    return { typeCode = "C", coreId = coreId, role = role, lead = lead, displayName = displayName }
+end
+
+function ns.Notes:ParseCoresFromCombined(combined)
+    local cores = {}
+    local count = 0
+    if not combined or combined == "" then return cores, count end
+    for bracket in combined:gmatch("%[([^%]]+)%]") do
+        for rawSeg in bracket:gmatch("[^,]+") do
+            local entry = self:ParseCoreSegment(rawSeg)
+            if entry then
+                if entry.typeCode == "B" then entry.coreId = 1 end
+                cores[entry.typeCode] = cores[entry.typeCode] or {}
+                cores[entry.typeCode][entry.coreId] = {
+                    role = entry.role,
+                    lead = entry.lead == true,
+                    displayName = entry.displayName,
+                }
+                count = count + 1
+            end
+        end
+    end
+    return cores, count
+end
+
+local function GuildControlRankAllowsOfficer()
+    if not IsInGuild() then return false end
+    if not GuildControlSetRank or not GuildControlGetRankFlags then return false end
+    local _, _, rankIndex = GetGuildInfo("player")
+    if rankIndex == nil then return false end
+    GuildControlSetRank(rankIndex + 1)
+    local _, _, _, _, _, _, _, _, _, _, _, edit_officer_note = GuildControlGetRankFlags()
+    return edit_officer_note ~= nil and edit_officer_note ~= false
+end
+
+local function GuildControlRankAllowsPublic()
+    if not IsInGuild() then return false end
+    if not GuildControlSetRank or not GuildControlGetRankFlags then return false end
+    local _, _, rankIndex = GetGuildInfo("player")
+    if rankIndex == nil then return false end
+    GuildControlSetRank(rankIndex + 1)
+    local _, _, _, _, _, _, _, _, _, edit_public_note = GuildControlGetRankFlags()
+    return edit_public_note ~= nil and edit_public_note ~= false
+end
+
+function ns.Notes:EffectiveCanEditOfficerNote()
+    if C_GuildInfo and C_GuildInfo.CanEditOfficerNote then
+        if C_GuildInfo.CanEditOfficerNote() then return true end
+    end
+    if CanEditOfficerNote and CanEditOfficerNote() then return true end
+    if GuildControlRankAllowsOfficer() then return true end
+    return false
+end
+
+function ns.Notes:EffectiveCanEditPublicNote()
+    if C_GuildInfo and C_GuildInfo.CanEditPublicNote then
+        if C_GuildInfo.CanEditPublicNote() then return true end
+    end
+    if CanEditPublicNote and CanEditPublicNote() then return true end
+    if GuildControlRankAllowsPublic() then return true end
+    return false
+end
 
 function ns.Notes:CanEditUI()
     if GCM_Settings and GCM_Settings.officerUi == false then return false end
     if GCM_Settings and GCM_Settings.officerUi == true then return true end
-    if CanEditOfficerNote and CanEditOfficerNote() then return true end
-    return false
-end
-function ns.Notes:CanWrite()
-    if not self:CanEditUI() then return false end
     if GCM_Settings and GCM_Settings.forceCanWrite then return true end
-    if CanEditOfficerNote and CanEditOfficerNote() then return true end
+    if self:EffectiveCanEditOfficerNote() then return true end
+    if self:EffectiveCanEditPublicNote() then return true end
     return false
 end
 
-function ns.Notes:CanWritePublic()
+function ns.Notes:CanWrite()
     if not self:CanEditUI() then return false end
     if GCM_Settings and GCM_Settings.forceCanWrite then return true end
-    if CanEditPublicNote and CanEditPublicNote() then return true end
+    if self:EffectiveCanEditOfficerNote() then return true end
     return false
 end
 
@@ -29,13 +177,17 @@ function ns.Notes:ParseEntries(text)
     local entries = {}
     if not text or text == "" then return entries end
     for bracket in text:gmatch("%[([^%]]+)%]") do
-        for typeCode, coreId, role, lead in bracket:gmatch("([KkG])%s*(%d+):?([THD]?)(%*?)") do
-            entries[#entries + 1] = {
-                typeCode = typeCode,
-                coreId = tonumber(coreId),
-                role = (role and role ~= "") and role or nil,
-                lead = lead == "*",
-            }
+        for rawSeg in bracket:gmatch("[^,]+") do
+            local entry = self:ParseCoreSegment(rawSeg)
+            if entry then
+                entries[#entries + 1] = {
+                    typeCode = entry.typeCode,
+                    coreId = entry.coreId,
+                    role = entry.role,
+                    lead = entry.lead == true,
+                    displayName = entry.displayName,
+                }
+            end
         end
     end
     return entries
@@ -49,9 +201,31 @@ function ns.Notes:StripBrackets(text)
 end
 
 local function EntryToString(e)
+    if e.typeCode == "B" then
+        local s = "B"
+        if e.displayName and e.displayName ~= "" then
+            s = s .. ":" .. e.displayName
+            if e.role then
+                s = s .. ":" .. e.role
+            end
+        elseif e.role then
+            s = s .. ":" .. e.role
+        end
+        if e.lead then
+            s = s .. "*"
+        end
+        return s
+    end
     local s = string.format("%s%d", e.typeCode, e.coreId)
-    if e.role then s = s .. e.role end
-    if e.lead then s = s .. "*" end
+    if e.displayName and e.displayName ~= "" then
+        s = s .. ":" .. e.displayName
+    end
+    if e.role then
+        s = s .. ":" .. e.role
+    end
+    if e.lead then
+        s = s .. "*"
+    end
     return s
 end
 
@@ -111,98 +285,9 @@ local function OptimisticUpdate(name, entries)
         ns.Cache[name].cores[e.typeCode][e.coreId] = {
             role = e.role,
             lead = e.lead and true or false,
+            displayName = e.displayName,
         }
     end
-end
-
-local function TagSource(entries, source)
-    for _, e in ipairs(entries) do e._source = source end
-end
-
-local function SplitBySource(entries)
-    local officer, public = {}, {}
-    for _, e in ipairs(entries) do
-        local clean = {
-            typeCode = e.typeCode, coreId = e.coreId, role = e.role, lead = e.lead,
-        }
-        if e._source == "public" then
-            public[#public + 1] = clean
-        else
-            officer[#officer + 1] = clean
-        end
-    end
-    return officer, public
-end
-
-local function MergeEntriesPreferringFirst(primary, secondary)
-    local seen, out = {}, {}
-    for _, e in ipairs(primary) do
-        local key = e.typeCode .. tostring(e.coreId)
-        if not seen[key] then
-            seen[key] = true
-            out[#out + 1] = { typeCode = e.typeCode, coreId = e.coreId, role = e.role, lead = e.lead }
-        end
-    end
-    for _, e in ipairs(secondary) do
-        local key = e.typeCode .. tostring(e.coreId)
-        if not seen[key] then
-            seen[key] = true
-            out[#out + 1] = { typeCode = e.typeCode, coreId = e.coreId, role = e.role, lead = e.lead }
-        end
-    end
-    return out
-end
-
-local function FallbackToPublic(name, idx, intendedOfficerEntries)
-    if not ns.Notes:CanWritePublic() then
-        print(ns.L.BRAND .. " " .. ns.L.NOTE_FALLBACK_NOPERM)
-        return false
-    end
-
-    local _, _, _, _, _, _, currentPublic = GetGuildRosterInfo(idx)
-    currentPublic = currentPublic or ""
-
-    local existingPublicEntries = ns.Notes:ParseEntries(currentPublic)
-    local mergedEntries = MergeEntriesPreferringFirst(intendedOfficerEntries, existingPublicEntries)
-
-    local newPublicNote = ns.Notes:Compose(currentPublic, mergedEntries)
-    if newPublicNote == currentPublic then
-        return false
-    end
-    if #newPublicNote > MAX_NOTE_LENGTH then
-        print(ns.L.BRAND .. " " .. string.format(ns.L.NOTE_TOO_LONG, #newPublicNote, MAX_NOTE_LENGTH))
-        return false
-    end
-
-    print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.NOTE_FALLBACK_PUBLIC, name))
-    print(ns.L.BRAND_YELLOW .. " " .. string.format("Diff public: \"%s\" -> \"%s\"", currentPublic, newPublicNote))
-
-    if GuildRosterSetPublicNote then
-        GuildRosterSetPublicNote(idx, newPublicNote)
-    end
-
-    if C_Timer and C_Timer.After then
-        C_Timer.After(2.5, function()
-            if GuildRoster then GuildRoster() end
-            C_Timer.After(0.8, function()
-                local verifyIdx = ns.Notes:GetIndexByName(name)
-                if not verifyIdx then return end
-                local _, _, _, _, _, _, curPub2 = GetGuildRosterInfo(verifyIdx)
-                curPub2 = curPub2 or ""
-                if curPub2 == newPublicNote then
-                    print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.NOTE_FALLBACK_OK, name))
-                    if ns.Scanner.ResetThrottle then ns.Scanner:ResetThrottle() end
-                    if ns.Scanner.ParseGuildNotes then ns.Scanner:ParseGuildNotes() end
-                    if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
-                else
-                    print(ns.L.BRAND .. " " .. string.format(ns.L.NOTE_REJECTED, name))
-                    print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.NOTE_DIFF, newPublicNote, curPub2))
-                end
-            end)
-        end)
-    end
-
-    return true
 end
 
 local function ApplyAndWrite(name, mutator)
@@ -212,35 +297,23 @@ local function ApplyAndWrite(name, mutator)
         return false
     end
 
-    local _, _, _, _, _, _, publicNote, officerNote = GetGuildRosterInfo(idx)
-    publicNote = publicNote or ""
+    local _, _, _, _, _, _, _, officerNote = GetGuildRosterInfo(idx)
     officerNote = officerNote or ""
 
     local officerEntries = ns.Notes:ParseEntries(officerNote)
-    local publicEntries = ns.Notes:ParseEntries(publicNote)
-    TagSource(officerEntries, "officer")
-    TagSource(publicEntries, "public")
-
     local combined = {}
     for _, e in ipairs(officerEntries) do combined[#combined + 1] = e end
-    for _, e in ipairs(publicEntries) do combined[#combined + 1] = e end
 
     local mutated = mutator(combined) or combined
-    local newOfficer, newPublic = SplitBySource(mutated)
 
-    local newOfficerNote = ns.Notes:Compose(officerNote, newOfficer)
-    local newPublicNote = ns.Notes:Compose(publicNote, newPublic)
+    local newOfficerNote = ns.Notes:Compose(officerNote, mutated)
 
     if #newOfficerNote > MAX_NOTE_LENGTH then
         print(ns.L.BRAND .. " " .. string.format(ns.L.NOTE_TOO_LONG, #newOfficerNote, MAX_NOTE_LENGTH))
         return false
     end
-    if #newPublicNote > MAX_NOTE_LENGTH then
-        print(ns.L.BRAND .. " " .. string.format(ns.L.NOTE_TOO_LONG, #newPublicNote, MAX_NOTE_LENGTH))
-        return false
-    end
 
-    local wroteOfficer, wrotePublic = false, false
+    local wroteOfficer = false
 
     if newOfficerNote ~= officerNote then
         if not ns.Notes:CanWrite() then
@@ -253,19 +326,7 @@ local function ApplyAndWrite(name, mutator)
         end
     end
 
-    if newPublicNote ~= publicNote then
-        if not ns.Notes:CanWritePublic() then
-            print(ns.L.BRAND .. " " .. ns.L.NOTE_NO_PERM_PUBLIC)
-        else
-            print(ns.L.BRAND_YELLOW .. " " .. string.format("Diff public: \"%s\" -> \"%s\"", publicNote, newPublicNote))
-            if GuildRosterSetPublicNote then
-                GuildRosterSetPublicNote(idx, newPublicNote)
-                wrotePublic = true
-            end
-        end
-    end
-
-    if not wroteOfficer and not wrotePublic then
+    if not wroteOfficer then
         print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_NO_CHANGE)
         return false
     end
@@ -284,35 +345,14 @@ local function ApplyAndWrite(name, mutator)
             C_Timer.After(0.8, function()
                 local verifyIdx = ns.Notes:GetIndexByName(name)
                 if not verifyIdx then return end
-                local _, _, _, _, _, _, curPublic, curOfficer = GetGuildRosterInfo(verifyIdx)
-                curPublic = curPublic or ""
+                local _, _, _, _, _, _, _, curOfficer = GetGuildRosterInfo(verifyIdx)
                 curOfficer = curOfficer or ""
 
                 local officerRejected = wroteOfficer and curOfficer ~= newOfficerNote
-                local publicRejected = wrotePublic and curPublic ~= newPublicNote
 
                 if officerRejected then
                     print(ns.L.BRAND .. " " .. string.format(ns.L.NOTE_REJECTED, name))
                     print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.NOTE_DIFF, newOfficerNote, curOfficer))
-                end
-                if publicRejected then
-                    print(ns.L.BRAND .. " " .. string.format(ns.L.NOTE_REJECTED, name))
-                    print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.NOTE_DIFF, newPublicNote, curPublic))
-                end
-
-                if officerRejected then
-                    local intendedOfficer = ns.Notes:ParseEntries(newOfficerNote)
-                    if #intendedOfficer > 0 then
-                        local triggered = FallbackToPublic(name, verifyIdx, intendedOfficer)
-                        if not triggered then
-                            print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_REJECTED_HINT)
-                        end
-                    else
-                        print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_REJECTED_HINT)
-                    end
-                    if ns.Scanner.ResetThrottle then ns.Scanner:ResetThrottle() end
-                    if ns.Scanner.ParseGuildNotes then ns.Scanner:ParseGuildNotes() end
-                elseif publicRejected then
                     print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_REJECTED_HINT)
                     if ns.Scanner.ResetThrottle then ns.Scanner:ResetThrottle() end
                     if ns.Scanner.ParseGuildNotes then ns.Scanner:ParseGuildNotes() end
@@ -327,6 +367,7 @@ local function ApplyAndWrite(name, mutator)
 end
 
 function ns.Notes:Assign(name, typeCode, coreId)
+    if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
     print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: ASSIGN %s -> %s%d", name, typeCode, coreId))
     return ApplyAndWrite(name, function(entries)
@@ -335,12 +376,13 @@ function ns.Notes:Assign(name, typeCode, coreId)
                 return entries
             end
         end
-        entries[#entries + 1] = { typeCode = typeCode, coreId = coreId, role = nil }
+        entries[#entries + 1] = { typeCode = typeCode, coreId = coreId, role = nil, displayName = nil }
         return entries
     end)
 end
 
 function ns.Notes:Unassign(name, typeCode, coreId)
+    if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
     print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: UNASSIGN %s from %s%d", name, typeCode, coreId))
     return ApplyAndWrite(name, function(entries)
@@ -355,6 +397,7 @@ function ns.Notes:Unassign(name, typeCode, coreId)
 end
 
 function ns.Notes:SetRole(name, typeCode, coreId, role)
+    if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
     print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: SETROLE %s %s%d -> %s", name, typeCode, coreId, tostring(role)))
     return ApplyAndWrite(name, function(entries)
@@ -364,7 +407,7 @@ function ns.Notes:SetRole(name, typeCode, coreId, role)
                 return entries
             end
         end
-        entries[#entries + 1] = { typeCode = typeCode, coreId = coreId, role = role }
+        entries[#entries + 1] = { typeCode = typeCode, coreId = coreId, role = role, displayName = nil }
         return entries
     end)
 end
@@ -389,6 +432,7 @@ function ns.Notes:IsLead(name, typeCode, coreId)
 end
 
 function ns.Notes:DemoteLead(name, typeCode, coreId)
+    if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
     print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: DEMOTE_LEAD %s %s%d", name, typeCode, coreId))
     return ApplyAndWrite(name, function(entries)
@@ -403,14 +447,9 @@ function ns.Notes:DemoteLead(name, typeCode, coreId)
 end
 
 function ns.Notes:PromoteLead(name, typeCode, coreId)
+    if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
     print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: PROMOTE_LEAD %s %s%d", name, typeCode, coreId))
-    if ns.Scanner and ns.Scanner.GetCoreLeader then
-        local current = ns.Scanner:GetCoreLeader(typeCode, coreId)
-        if current and current ~= name then
-            self:DemoteLead(current, typeCode, coreId)
-        end
-    end
     return ApplyAndWrite(name, function(entries)
         for _, e in ipairs(entries) do
             if e.typeCode == typeCode and e.coreId == coreId then
@@ -418,7 +457,7 @@ function ns.Notes:PromoteLead(name, typeCode, coreId)
                 return entries
             end
         end
-        entries[#entries + 1] = { typeCode = typeCode, coreId = coreId, role = nil, lead = true }
+        entries[#entries + 1] = { typeCode = typeCode, coreId = coreId, role = nil, lead = true, displayName = nil }
         return entries
     end)
 end

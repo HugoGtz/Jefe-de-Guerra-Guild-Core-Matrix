@@ -10,6 +10,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" and ... == addonName then
         ns.Database:Initialize()
         ns.Locale:Activate()
+        ns.Database:ApplySchemaUpgrades()
         ns.Locale:RunCallbacks()
         if ns.Comms and ns.Comms.Init then ns.Comms:Init() end
         if ns.Schedule and ns.Schedule.Init then ns.Schedule:Init() end
@@ -21,6 +22,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ns.Scanner:ParseGuildNotes()
         if ns.Schedule and ns.Schedule.RequestSync then ns.Schedule:RequestSync() end
         if ns.Specs and ns.Specs.RequestSync then ns.Specs:RequestSync() end
+        if C_Timer and C_Timer.After then
+            C_Timer.After(5, function()
+                if ns.Comms and ns.Comms.PushHello then ns.Comms:PushHello() end
+            end)
+        elseif ns.Comms and ns.Comms.PushHello then
+            ns.Comms:PushHello()
+        end
     elseif event == "GUILD_ROSTER_UPDATE" or event == "GROUP_ROSTER_UPDATE" then
         ns.Scanner:ParseGuildNotes()
     end

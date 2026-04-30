@@ -75,12 +75,6 @@ local function CopyName(name)
     StaticPopup_Show("GCM_COPY_NAME", nil, nil, name)
 end
 
-local function GetRaidLabel(typeCode)
-    if typeCode == "k" then return ns.L.LABEL_KARA10 end
-    if typeCode == "K" then return ns.L.LABEL_KARA25 end
-    return ns.L.LABEL_GRUULMAG
-end
-
 StaticPopupDialogs["GCM_CUSTOM_CORE"] = {
     text = "%s",
     button1 = ACCEPT or "OK",
@@ -119,14 +113,26 @@ StaticPopupDialogs["GCM_CUSTOM_CORE"] = {
 }
 
 local function ShowCustomCoreDialog(name, typeCode)
-    StaticPopupDialogs["GCM_CUSTOM_CORE"].text = string.format(ns.L.CUSTOM_CORE_PROMPT, GetRaidLabel(typeCode))
+    StaticPopupDialogs["GCM_CUSTOM_CORE"].text = ns.L.CUSTOM_CORE_PROMPT
     StaticPopup_Show("GCM_CUSTOM_CORE", nil, nil, { name = name, typeCode = typeCode })
 end
 
 local function BuildAssignSubmenu(name, typeCode)
     local list = {}
+    if typeCode == "B" then
+        local already = ns.Notes:HasRole(name, typeCode, 1)
+        list[#list + 1] = {
+            text = string.format("%s%s", ns.L.LABEL_BENCH, already and " |cff666666*|r" or ""),
+            notCheckable = true,
+            disabled = already,
+            func = function() ns.Notes:Assign(name, typeCode, 1) end,
+        }
+        return list
+    end
+
     local discovered = ns.Scanner:GetDiscoveredCores()
-    local existing = discovered[typeCode] or {}
+    local existing = {}
+    for id in pairs(discovered[typeCode] or {}) do existing[id] = true end
 
     local ids = {}
     for id in pairs(existing) do ids[#ids + 1] = tonumber(id) or id end
@@ -134,8 +140,9 @@ local function BuildAssignSubmenu(name, typeCode)
 
     for _, id in ipairs(ids) do
         local already = ns.Notes:HasRole(name, typeCode, id)
+        local rowText = string.format("Core %d%s", id, already and " |cff666666*|r" or "")
         list[#list + 1] = {
-            text = string.format("Core %d%s", id, already and " |cff666666[*]|r" or ""),
+            text = rowText,
             notCheckable = true,
             disabled = already,
             func = function() ns.Notes:Assign(name, typeCode, id) end,
@@ -209,7 +216,7 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
         }
     end
 
-    if ns.Notes:CanEditUI() then
+    if ns.Notes:CanWrite() then
         if context and context.typeCode and context.coreId then
             entries[#entries + 1] = {
                 text = L.MENU_CHANGE_ROLE,
@@ -231,7 +238,7 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
                 }
             end
             entries[#entries + 1] = {
-                text = string.format(L.MENU_REMOVE_FROM_CORE, GetRaidLabel(context.typeCode), context.coreId),
+                text = context.typeCode == "B" and L.MENU_REMOVE_FROM_BENCH or string.format(L.MENU_REMOVE_FROM_CORE, context.coreId),
                 notCheckable = true,
                 func = function() ns.Notes:Unassign(name, context.typeCode, context.coreId) end,
             }
@@ -241,11 +248,13 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
             text = L.MENU_ADD_TO_CORE,
             notCheckable = true,
             hasArrow = true,
-            menuList = {
-                { text = L.LABEL_KARA10, notCheckable = true, hasArrow = true, menuList = BuildAssignSubmenu(name, "k") },
-                { text = L.LABEL_KARA25, notCheckable = true, hasArrow = true, menuList = BuildAssignSubmenu(name, "K") },
-                { text = L.LABEL_GRUULMAG, notCheckable = true, hasArrow = true, menuList = BuildAssignSubmenu(name, "G") },
-            },
+            menuList = BuildAssignSubmenu(name, "C"),
+        }
+        entries[#entries + 1] = {
+            text = L.MENU_ADD_TO_BENCH,
+            notCheckable = true,
+            hasArrow = true,
+            menuList = BuildAssignSubmenu(name, "B"),
         }
     end
 
@@ -286,10 +295,14 @@ function MemberRowMixin:Build()
     self.leadIcon = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
     self.leadIcon:SetPoint("LEFT", self.conflict, "RIGHT", 0, 0)
     self.leadIcon:SetTextColor(unpack(UI.COLOR.LEAD))
-    self.leadIcon:SetWidth(12)
+    self.leadIcon:SetWidth(16)
+
+    self.addonBadge = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
+    self.addonBadge:SetPoint("LEFT", self.leadIcon, "RIGHT", 2, 0)
+    self.addonBadge:SetWidth(16)
 
     self.nameText = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
-    self.nameText:SetPoint("LEFT", self.leadIcon, "RIGHT", 2, 0)
+    self.nameText:SetPoint("LEFT", self.addonBadge, "RIGHT", 2, 0)
     self.nameText:SetPoint("RIGHT", -56, 0)
     self.nameText:SetJustifyH("LEFT")
     self.nameText:SetWordWrap(false)
@@ -339,13 +352,17 @@ function MemberRowMixin:ShowTooltip()
         end
     end
     if m.lead then
-        GameTooltip:AddLine("|cffffd100★ " .. ns.L.LEADER_LABEL .. "|r", 1, 0.82, 0)
+        GameTooltip:AddLine(ns.UI:GetRaidLeadIcon() .. " |cffffd100" .. ns.L.LEADER_LABEL .. "|r", 1, 1, 1)
+    end
+    if ns.Comms and ns.Comms.PeerShowsAddonBadge and ns.Comms:PeerShowsAddonBadge(m.name) then
+        local ver = ns.Comms.PeerAddonTooltipVersion and ns.Comms:PeerAddonTooltipVersion(m.name) or "?"
+        GameTooltip:AddLine(string.format(ns.L.ADDON_PEER_TOOLTIP, ver or "?"), 0.5, 1.0, 0.5)
     end
     if m.publicNote and m.publicNote ~= "" then
         GameTooltip:AddLine(m.publicNote, 0.7, 0.7, 0.7, true)
     end
     if m.hasConflict then
-        GameTooltip:AddLine("|cffff5555" .. string.format(ns.L.CONFLICT_TOOLTIP, m.conflictCount, m.conflictType) .. "|r", 1, 0.3, 0.3, true)
+        GameTooltip:AddLine("|cffff5555" .. string.format(ns.L.CONFLICT_TOOLTIP, m.conflictCount) .. "|r", 1, 0.3, 0.3, true)
     end
     GameTooltip:Show()
 end
@@ -360,7 +377,9 @@ function MemberRowMixin:SetData(member, context)
     self.roleIcon:SetText(ns.UI:GetRoleIcon(member.role))
     self.classIcon:SetText(ns.UI:GetClassIcon(member.class))
     self.conflict:SetText(member.hasConflict and "!" or "")
-    self.leadIcon:SetText(member.lead and "★" or "")
+    self.leadIcon:SetText(member.lead and ns.UI:GetRaidLeadIcon() or "")
+    local peerAddon = ns.Comms and ns.Comms.PeerShowsAddonBadge and ns.Comms:PeerShowsAddonBadge(member.name)
+    self.addonBadge:SetText(peerAddon and ns.UI:GetAddonPeerIcon() or "")
 
     local r, g, b = ns.UI:GetClassColor(member.class)
     if not member.online then

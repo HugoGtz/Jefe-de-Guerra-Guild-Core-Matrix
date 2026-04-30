@@ -76,8 +76,13 @@ local SyncBtn = CreateFrame("Button", nil, TitleBar, "UIPanelButtonTemplate")
 SyncBtn:SetSize(60, 20)
 SyncBtn:SetPoint("RIGHT", CloseBtn, "LEFT", 0, -8)
 SyncBtn:SetScript("OnClick", function()
-    C_GuildInfo.GuildRoster()
-    ns.Scanner:ParseGuildNotes()
+    if C_GuildInfo and C_GuildInfo.GuildRoster then
+        C_GuildInfo.GuildRoster()
+    elseif GuildRoster then
+        GuildRoster()
+    end
+    ns.Scanner:ResetThrottle()
+    ns.Scanner:ParseGuildNotes({ verbose = true })
 end)
 
 local ResizeBtn = CreateFrame("Button", nil, MainFrame)
@@ -137,6 +142,10 @@ SlashCmdList["GCM"] = function(msg)
         return
     end
     local arg = lead
+    if arg == "migrate" then
+        ns.Database:RunManualLegacyCoreKeysMigration()
+        return
+    end
     if arg == "reset" then
         ns.Database:ResetWindow()
         MainFrame:ClearAllPoints()
@@ -155,12 +164,19 @@ SlashCmdList["GCM"] = function(msg)
     if arg == "perms" then
         local raw = CanEditOfficerNote and CanEditOfficerNote() or false
         local rawPub = CanEditPublicNote and CanEditPublicNote() or false
+        local cgiOff = C_GuildInfo and C_GuildInfo.CanEditOfficerNote and C_GuildInfo.CanEditOfficerNote() or nil
+        local cgiPub = C_GuildInfo and C_GuildInfo.CanEditPublicNote and C_GuildInfo.CanEditPublicNote() or nil
         local mode = GCM_Settings.officerUi
         local modeStr = mode == true and "on" or (mode == false and "off" or "auto")
         print(ns.L.BRAND .. string.format(
-            " officerUi=%s | CanEditUI=%s | CanWrite=%s | CanEditOfficerNote()=%s | CanEditPublicNote()=%s | forceCanWrite=%s",
+            " officerUi=%s | CanEditUI=%s | CanWrite=%s | forceCanWrite=%s",
             modeStr, tostring(ns.Notes:CanEditUI()), tostring(ns.Notes:CanWrite()),
-            tostring(raw), tostring(rawPub), tostring(GCM_Settings.forceCanWrite)))
+            tostring(GCM_Settings.forceCanWrite)))
+        print(ns.L.BRAND .. string.format(
+            " EffectiveOff=%s EffectivePub=%s legacy Off=%s Pub=%s C_GuildInfo Off=%s Pub=%s",
+            tostring(ns.Notes:EffectiveCanEditOfficerNote()),
+            tostring(ns.Notes:EffectiveCanEditPublicNote()),
+            tostring(raw), tostring(rawPub), tostring(cgiOff), tostring(cgiPub)))
         return
     end
     if arg == "spec" then
