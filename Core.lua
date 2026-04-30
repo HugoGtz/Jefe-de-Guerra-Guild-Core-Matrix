@@ -16,6 +16,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if ns.Schedule and ns.Schedule.Init then ns.Schedule:Init() end
         if ns.Signups and ns.Signups.Init then ns.Signups:Init() end
         if ns.Specs and ns.Specs.Init then ns.Specs:Init() end
+        if ns.LFG and ns.LFG.Init then ns.LFG:Init() end
         if ns.RaidFormation and ns.RaidFormation.Init then ns.RaidFormation:Init() end
     elseif event == "PLAYER_LOGIN" then
         print(ns.L.BRAND .. " " .. ns.L.LOGIN_READY)
@@ -23,6 +24,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ns.Scanner:ParseGuildNotes()
         if ns.Schedule and ns.Schedule.RequestSync then ns.Schedule:RequestSync() end
         if ns.Specs and ns.Specs.RequestSync then ns.Specs:RequestSync() end
+        if ns.LFG and ns.LFG.RequestSync then ns.LFG:RequestSync() end
         if C_Timer and C_Timer.After then
             C_Timer.After(5, function()
                 if ns.Comms and ns.Comms.PushHello then ns.Comms:PushHello() end

@@ -435,13 +435,18 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
             GameTooltip:Hide()
         end)
         self.inviteBtn:SetScript("OnClick", function()
+            if ns.Scanner and ns.Scanner.ParseGuildNotesNow then
+                ns.Scanner:ParseGuildNotesNow({})
+            end
             local fullMembers = ns.Scanner:GetMembersForCore(typeCode, coreId)
-            local invited = 0
+            local invited, onlineInCore = 0, 0
             if ns.InviteTools and ns.InviteTools.InviteOnlineMembers then
-                invited = ns.InviteTools:InviteOnlineMembers(fullMembers)
+                invited, onlineInCore = ns.InviteTools:InviteOnlineMembers(fullMembers)
             end
             if invited > 0 then
                 print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.INVITE_LOG, invited, coreId or 0))
+            elseif onlineInCore > 0 then
+                print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.INVITE_NONE_ALREADY_GROUPED, coreId or 0))
             else
                 print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.INVITE_NONE, coreId or 0))
             end
@@ -621,14 +626,16 @@ function ns.UI:RefreshCoreList()
 end
 
 function ns.UI:Refresh()
-    if CoreListPanel:IsShown() then
+    if ns.UI.ActivePanel == "lfg" then
+        if ns.UI.RefreshLFGList then ns.UI:RefreshLFGList() end
+    elseif ns.UI.CoreListPanel and ns.UI.CoreListPanel:IsShown() then
         ns.UI:RefreshCoreList()
     end
 end
 
 ns.UI.CoreListPanel = CoreListPanel
 
-MainFrame:HookScript("OnShow", function() ns.UI:RefreshCoreList() end)
-MainFrame:HookScript("OnSizeChanged", function() ns.UI:RefreshCoreList() end)
+MainFrame:HookScript("OnShow", function() ns.UI:Refresh() end)
+MainFrame:HookScript("OnSizeChanged", function() ns.UI:Refresh() end)
 
 ns.Locale:RegisterCallback(function() ns.UI:RefreshCoreList() end)

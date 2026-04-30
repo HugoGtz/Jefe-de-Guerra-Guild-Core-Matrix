@@ -12,10 +12,11 @@ Locales\enUS.lua
 Locales\esES.lua
 Locales\esMX.lua
 Modules\Database.lua
+Modules\Notes.lua
+Modules\LFG.lua
 Modules\Scanner.lua
 Modules\InviteTools.lua
 Modules\RaidFormation.lua
-Modules\Notes.lua
 Modules\Comms.lua
 Modules\Schedule.lua
 Modules\Signups.lua
@@ -24,6 +25,7 @@ Modules\UI_Elements.lua
 Modules\UI_Main.lua
 Modules\UI_Member.lua
 Modules\UI_FilterBar.lua
+Modules\UI_LFG.lua
 Modules\UI_Schedule.lua
 Modules\UI_CoreList.lua
 Modules\UI_Minimap.lua

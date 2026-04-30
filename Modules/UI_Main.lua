@@ -64,9 +64,6 @@ HeaderLogo:SetSize(20, 20)
 HeaderLogo:SetPoint("LEFT", 5, 0)
 HeaderLogo:SetTexture("Interface\\AddOns\\GuildCoreMatrix\\Media\\logo")
 
-local Header = TitleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-Header:SetPoint("LEFT", HeaderLogo, "RIGHT", 5, 0)
-
 local CloseBtn = CreateFrame("Button", nil, MainFrame, "UIPanelCloseButton")
 CloseBtn:SetPoint("TOPRIGHT", MainFrame, "TOPRIGHT", -2, -2)
 CloseBtn:SetScale(0.8)
@@ -75,6 +72,29 @@ CloseBtn:SetScript("OnClick", function() MainFrame:Hide() end)
 local SyncBtn = CreateFrame("Button", nil, TitleBar, "UIPanelButtonTemplate")
 SyncBtn:SetSize(60, 20)
 SyncBtn:SetPoint("RIGHT", CloseBtn, "LEFT", 0, -8)
+
+local TabCores = CreateFrame("Button", nil, TitleBar, "UIPanelButtonTemplate")
+TabCores:SetSize(74, 20)
+local TabLFG = CreateFrame("Button", nil, TitleBar, "UIPanelButtonTemplate")
+TabLFG:SetSize(82, 20)
+TabLFG:SetPoint("RIGHT", SyncBtn, "LEFT", -8, 0)
+TabCores:SetPoint("RIGHT", TabLFG, "LEFT", -4, 0)
+TabCores:SetScript("OnClick", function()
+    if ns.UI.SetMainPanel then ns.UI:SetMainPanel("cores") end
+end)
+TabLFG:SetScript("OnClick", function()
+    if ns.UI.SetMainPanel then ns.UI:SetMainPanel("lfg") end
+end)
+TabCores:SetAlpha(1)
+TabLFG:SetAlpha(0.55)
+ns.UI.TabCores = TabCores
+ns.UI.TabLFG = TabLFG
+
+local Header = TitleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+Header:SetPoint("LEFT", HeaderLogo, "RIGHT", 5, 0)
+Header:SetPoint("RIGHT", TabCores, "LEFT", -8, 0)
+Header:SetJustifyH("LEFT")
+
 SyncBtn:SetScript("OnClick", function()
     if C_GuildInfo and C_GuildInfo.GuildRoster then
         C_GuildInfo.GuildRoster()
@@ -110,6 +130,8 @@ loginFrame:SetScript("OnEvent", function() ApplyPersistedLayout() end)
 ns.Locale:RegisterCallback(function()
     Header:SetText(ns.L.HEADER_TITLE)
     SyncBtn:SetText(ns.L.BTN_SYNC)
+    TabCores:SetText(ns.L.LFG_TAB_CORES)
+    TabLFG:SetText(ns.L.LFG_TAB_LOOKING)
 end)
 
 SLASH_GCM1 = "/gcm"
@@ -139,6 +161,30 @@ SlashCmdList["GCM"] = function(msg)
             return
         end
         if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
+        return
+    end
+    if lead == "lfg" then
+        local rest = tail:match("^%s*(.*)$") or ""
+        rest = rest:match("^%s*(.-)%s*$") or ""
+        if rest == "" or rest == "?" or string.lower(rest) == "help" then
+            print(ns.L.BRAND .. " " .. ns.L.LFG_SLASH_USAGE)
+            return
+        end
+        local low = string.lower(rest)
+        if low == "clear" or low == "off" then
+            if ns.LFG and ns.LFG.SetMine then
+                ns.LFG:SetMine({}, "")
+            end
+            return
+        end
+        if ns.LFG and ns.LFG.CodesFromWhitespace and ns.LFG.SetMine then
+            local codes = ns.LFG:CodesFromWhitespace(rest)
+            if #codes == 0 then
+                print(ns.L.BRAND .. " " .. ns.L.LFG_SLASH_UNKNOWN)
+                return
+            end
+            ns.LFG:SetMine(codes, "")
+        end
         return
     end
     local arg = lead

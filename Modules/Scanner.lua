@@ -1,10 +1,12 @@
 local addonName, ns = ...
 ns.Scanner = {}
 
-local lastScan = 0
+local parseDebounceGen = 0
+local parseQueuedOpts = {}
 
 function ns.Scanner:ResetThrottle()
-    lastScan = 0
+    parseDebounceGen = parseDebounceGen + 1
+    parseQueuedOpts = {}
 end
 
 local function ParseCoresFromNotes(combined)
@@ -12,6 +14,14 @@ local function ParseCoresFromNotes(combined)
         return ns.Notes:ParseCoresFromCombined(combined)
     end
     return {}, 0
+end
+
+local function CoerceGuildOnline(v)
+    if v == true then return true end
+    if v == false or v == nil then return false end
+    if type(v) == "number" then return v > 0 end
+    if type(v) == "string" then return v ~= "" and v ~= "0" end
+    return false
 end
 
 function ns.Scanner:SyncLootMasterPrefsFromCache()
@@ -52,10 +62,27 @@ end
 function ns.Scanner:ParseGuildNotes(opts)
     opts = opts or {}
     if not IsInGuild() then return end
+    if opts.verbose then parseQueuedOpts.verbose = true end
+    parseDebounceGen = parseDebounceGen + 1
+    local gen = parseDebounceGen
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0.15, function()
+            if gen ~= parseDebounceGen then return end
+            local q = {}
+            if parseQueuedOpts.verbose then q.verbose = true end
+            parseQueuedOpts = {}
+            ns.Scanner:ParseGuildNotesNow(q)
+        end)
+    else
+        local q = {}
+        if opts.verbose then q.verbose = true end
+        ns.Scanner:ParseGuildNotesNow(q)
+    end
+end
 
-    local now = GetTime()
-    if (now - lastScan) < 2 then return end
-    lastScan = now
+function ns.Scanner:ParseGuildNotesNow(opts)
+    opts = opts or {}
+    if not IsInGuild() then return end
 
     ns.Cache = ns.Cache or {}
     wipe(ns.Cache)
@@ -71,16 +98,27 @@ function ns.Scanner:ParseGuildNotes(opts)
             local years, months, days, hours = GetGuildRosterLastOnline(i)
             local combined = officerNote or ""
             local cores, count = ParseCoresFromNotes(combined)
+            local lfgTags = {}
+            local lfgDetail = ""
+            local syncLF = ns.Sync and ns.Sync.lfg and ns.Sync.lfg[cleanName]
+            if syncLF then
+                for _, t in ipairs(syncLF.tags or {}) do
+                    lfgTags[#lfgTags + 1] = t
+                end
+                lfgDetail = syncLF.detail or ""
+            end
 
             ns.Cache[cleanName] = {
                 rosterName = name,
                 class = classFileName,
                 level = level,
-                online = (online == true or online == 1),
+                online = CoerceGuildOnline(online),
                 zone = zone,
                 publicNote = publicNote,
                 lastOnline = { years = years or 0, months = months or 0, days = days or 0, hours = hours or 0 },
                 cores = cores,
+                lfg = lfgTags,
+                lfgDetail = lfgDetail,
             }
 
             foundCount = foundCount + count

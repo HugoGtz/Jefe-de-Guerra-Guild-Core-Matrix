@@ -7,11 +7,23 @@ local function NameKey(name)
     return Ambiguate(name or "", "none")
 end
 
+local function UnitGroupNameKey(u)
+    if not UnitExists(u) then return "" end
+    local full = UnitFullName(u)
+    if full and full ~= "" then
+        return Ambiguate(full, "none")
+    end
+    local n = UnitName(u)
+    if not n then return "" end
+    return Ambiguate(n, "none")
+end
+
 local function IsSelfNameKey(nameKey)
-    local me = UnitName("player")
-    if not me then return false end
     if nameKey == "" then return false end
-    return nameKey == NameKey(me)
+    local pf = UnitFullName("player")
+    if pf and pf ~= "" and nameKey == Ambiguate(pf, "none") then return true end
+    local me = UnitName("player")
+    return me ~= nil and nameKey == NameKey(me)
 end
 
 local function IsInLocalGroupByNameKey(nameKey)
@@ -21,19 +33,13 @@ local function IsInLocalGroupByNameKey(nameKey)
         local n = GetNumRaidMembers and GetNumRaidMembers() or 0
         for i = 1, n do
             local u = "raid" .. i
-            if UnitExists(u) then
-                local un = NameKey(UnitName(u))
-                if un ~= "" and un == nameKey then return true end
-            end
+            if UnitGroupNameKey(u) == nameKey then return true end
         end
         return false
     end
     for i = 1, 4 do
         local u = "party" .. i
-        if UnitExists(u) then
-            local un = NameKey(UnitName(u))
-            if un ~= "" and un == nameKey then return true end
-        end
+        if UnitGroupNameKey(u) == nameKey then return true end
     end
     return false
 end
@@ -56,10 +62,12 @@ function ns.InviteTools:InviteOne(rosterOrShort)
 end
 
 function ns.InviteTools:InviteOnlineMembers(members)
-    if not InviteUnit then return 0 end
+    if not InviteUnit then return 0, 0 end
     local tokens = {}
+    local onlineCore = 0
     for _, m in ipairs(members or {}) do
         if m.online then
+            onlineCore = onlineCore + 1
             local nk = NameKey(m.name)
             if nk ~= "" and not IsSelfNameKey(nk) and not IsInLocalGroupByNameKey(nk) then
                 local token = self:ResolveInviteToken(m.rosterName or m.name)
@@ -68,7 +76,7 @@ function ns.InviteTools:InviteOnlineMembers(members)
         end
     end
     local total = #tokens
-    if total == 0 then return 0 end
+    if total == 0 then return 0, onlineCore end
     if C_Timer and C_Timer.After then
         for i = 1, total do
             local tok = tokens[i]
@@ -81,5 +89,5 @@ function ns.InviteTools:InviteOnlineMembers(members)
             InviteUnit(tokens[i])
         end
     end
-    return total
+    return total, onlineCore
 end

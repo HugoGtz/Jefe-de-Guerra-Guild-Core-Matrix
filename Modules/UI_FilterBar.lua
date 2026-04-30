@@ -39,6 +39,7 @@ ns.UI.Filter = {
     onlyMine = nil,
     showUnassigned = false,
     classes = {},
+    lfgPick = {},
 }
 
 local function ResolveOnlyMineDefault()
@@ -62,6 +63,8 @@ Bar:SetBackdrop({
 Bar:SetBackdropColor(unpack(UI.COLOR.BAR_BG))
 Bar:SetBackdropBorderColor(unpack(UI.COLOR.EDGE))
 
+ns.UI.FilterBar = Bar
+
 local Sep = Bar:CreateTexture(nil, "ARTWORK")
 Sep:SetTexture(UI.COLOR.WHITE_TEX)
 Sep:SetVertexColor(unpack(UI.COLOR.SEP))
@@ -77,6 +80,8 @@ SearchBox:SetScript("OnTextChanged", function(self)
 end)
 SearchBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 SearchBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+
+ns.UI.SearchBox = SearchBox
 
 local function AttachToggleHover(btn)
     btn:SetScript("OnEnter", function(self)
@@ -246,12 +251,17 @@ btnClear:SetScript("OnClick", function()
     for k in pairs(ns.UI.Filter.classes) do
         ns.UI.Filter.classes[k] = nil
     end
+    for k in pairs(ns.UI.Filter.lfgPick) do
+        ns.UI.Filter.lfgPick[k] = nil
+    end
     SearchBox:SetText("")
     ns.UI.FilterBar:UpdateVisualState()
     if ns.UI.Refresh then ns.UI:Refresh() end
 end)
 
-local function LayoutToggles()
+local layoutMode = "cores"
+
+local function LayoutTogglesFull()
     btnClear:ClearAllPoints()
     btnClear:SetPoint("TOPRIGHT", Bar, "TOPRIGHT", -10, UI.SIZE.ROW1_TOP)
 
@@ -304,13 +314,58 @@ local function FitToggles()
     end
 end
 
-Bar:SetScript("OnSizeChanged", function()
-    FitToggles()
-    LayoutToggles()
-end)
+local function LayoutTogglesLFG()
+    btnClear:ClearAllPoints()
+    btnClear:SetPoint("TOPRIGHT", Bar, "TOPRIGHT", -10, UI.SIZE.ROW1_TOP)
 
-ns.UI.FilterBar = Bar
-ns.UI.SearchBox = SearchBox
+    SearchBox:ClearAllPoints()
+    SearchBox:SetHeight(UI.SIZE.BTN_HEIGHT)
+    SearchBox:SetPoint("TOPLEFT", Bar, "TOPLEFT", 14, UI.SIZE.ROW1_TOP)
+    SearchBox:SetPoint("RIGHT", btnClear, "LEFT", -10, 0)
+
+    btnOnline:ClearAllPoints()
+    btnOnline:SetPoint("TOPLEFT", Bar, "TOPLEFT", 14, UI.SIZE.ROW2_TOP)
+end
+
+local function FitLFGBar()
+    local pad = 12
+    for _, b in ipairs({ btnOnline, btnClear }) do
+        local w = b.text:GetStringWidth() + pad
+        if w < 32 then w = 32 end
+        b:SetWidth(w)
+    end
+end
+
+local function ApplyBarLayout()
+    if layoutMode == "cores" then
+        LayoutTogglesFull()
+        FitToggles()
+    else
+        LayoutTogglesLFG()
+        FitLFGBar()
+    end
+end
+
+function ns.UI.FilterBar:SetCoreFiltersVisible(show)
+    layoutMode = show and "cores" or "lfg"
+    local vis = show and true or false
+    btnMine:SetShown(vis)
+    btnUnassigned:SetShown(vis)
+    btnNoRole:SetShown(vis)
+    btnTanks:SetShown(vis)
+    btnHealers:SetShown(vis)
+    btnDps:SetShown(vis)
+    Sep:SetShown(vis)
+    for _, b in ipairs(classButtons) do
+        b:SetShown(vis)
+    end
+    Bar:SetHeight(show and UI.SIZE.BAR_HEIGHT or 52)
+    ApplyBarLayout()
+end
+
+Bar:SetScript("OnSizeChanged", function()
+    ApplyBarLayout()
+end)
 
 function ns.UI.FilterBar:UpdateVisualState()
     local F = ns.UI.Filter
@@ -349,8 +404,7 @@ ns.Locale:RegisterCallback(function()
     for _, btn in ipairs(classButtons) do
         ns.UI:SetClassCircleTexture(btn.icon, btn.classFile)
     end
-    FitToggles()
-    LayoutToggles()
+    ApplyBarLayout()
     ns.UI.FilterBar:UpdateVisualState()
 end)
 

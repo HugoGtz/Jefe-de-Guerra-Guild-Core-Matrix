@@ -193,6 +193,7 @@ function ns.Database:Initialize()
     GCM_Sync.schedules = GCM_Sync.schedules or {}
     GCM_Sync.signups = GCM_Sync.signups or {}
     GCM_Sync.specs = GCM_Sync.specs or {}
+    GCM_Sync.lfg = GCM_Sync.lfg or {}
     GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}
     GCM_Sync.meta = GCM_Sync.meta or { version = 1 }
     ns.Sync = GCM_Sync

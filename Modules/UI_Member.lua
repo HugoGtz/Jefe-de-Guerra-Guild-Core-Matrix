@@ -201,6 +201,7 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
     local whisperTarget = inviteTarget
     local selfName = UnitName("player")
     local isSelf = selfName and Ambiguate(name or "", "none") == Ambiguate(selfName, "none")
+    local quick = context and context.lfgQuick == true
 
     local entries = {
         { text = name, isTitle = true, notCheckable = true },
@@ -219,7 +220,7 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
         { text = L.MENU_COPY, notCheckable = true, func = function() CopyName(name) end },
     }
 
-    if ns.Specs and member.class and (ns.Notes:CanEditUI() or isSelf) then
+    if not quick and ns.Specs and member.class and (ns.Notes:CanEditUI() or isSelf) then
         entries[#entries + 1] = {
             text = L.MENU_CHANGE_SPEC,
             notCheckable = true,
@@ -228,7 +229,7 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
         }
     end
 
-    if ns.Notes:CanWrite() then
+    if not quick and ns.Notes:CanWrite() then
         if context and context.typeCode and context.coreId then
             entries[#entries + 1] = {
                 text = L.MENU_CHANGE_ROLE,
