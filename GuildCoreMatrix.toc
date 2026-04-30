@@ -13,6 +13,8 @@ Locales\esES.lua
 Locales\esMX.lua
 Modules\Database.lua
 Modules\Scanner.lua
+Modules\InviteTools.lua
+Modules\RaidFormation.lua
 Modules\Notes.lua
 Modules\Comms.lua
 Modules\Schedule.lua

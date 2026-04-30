@@ -16,6 +16,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if ns.Schedule and ns.Schedule.Init then ns.Schedule:Init() end
         if ns.Signups and ns.Signups.Init then ns.Signups:Init() end
         if ns.Specs and ns.Specs.Init then ns.Specs:Init() end
+        if ns.RaidFormation and ns.RaidFormation.Init then ns.RaidFormation:Init() end
     elseif event == "PLAYER_LOGIN" then
         print(ns.L.BRAND .. " " .. ns.L.LOGIN_READY)
         if GuildRoster then GuildRoster() end

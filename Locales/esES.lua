@@ -10,6 +10,7 @@ ns.Locale:Register("esES", {
     LOGIN_READY = "Sistema de Cores listo (UI v1.5.0).",
     SCAN_SUCCESS = "Éxito: %d miembros asignados a Cores.",
     SCAN_NO_MATCHES = "No hay etiquetas [C#] o de banca [B] válidas en notas de oficial (las viejas [k#/K#/G#] siguen leyéndose hasta reescribirlas).",
+    ML_NOTE_CONFLICT = "%s: varios miembros tienen :ML en las notas de oficial (%s). Se usará %s para el botín automático.",
 
     BTN_SYNC = "SYNC",
     BTN_INVITE_ALL = "Invitar",
@@ -58,6 +59,8 @@ ns.Locale:Register("esES", {
     MENU_CUSTOM = "Personalizado",
     MENU_SET_LEAD = "Marcar como líder de raid",
     MENU_REMOVE_LEAD = "Quitar líder de raid",
+    MENU_SET_MASTER_LOOTER = "Asignar maestro de botín",
+    MENU_CLEAR_MASTER_LOOTER = "Quitar maestro de botín",
     LEADER_LABEL = "Líder de raid",
     ADDON_PEER_TOOLTIP = "|cff4ade80Guild Core Matrix|r instalado — versión %s",
     CARD_LEADS_PREFIX = "Líderes:",
@@ -80,6 +83,15 @@ ns.Locale:Register("esES", {
 
     INVITE_LOG = "Invitados %d miembro(s) del Core %d.",
     INVITE_NONE = "Ningún miembro online para invitar en el Core %d.",
+    INVITE_CARD_TOOLTIP_TITLE = "Invitar",
+    INVITE_CARD_TOOLTIP_BODY = "Invita a los miembros online de este core. Si eres líder del grupo, el addon convierte a banda, asiste a tanques y líderes de raid y aplica el maestro de botín guardado.",
+    INVITE_CARD_TOOLTIP_ML_HINT = "Clic derecho en un miembro de la lista para cambiar rol, especificación, líder de raid o maestro de botín de este core.",
+    MASTER_LOOT_CURRENT = "Actual: %s",
+    MASTER_LOOT_CURRENT_NONE = "Actual: botín de grupo (sin ML)",
+    RAID_FORM_CONVERTED = "Grupo convertido a banda.",
+    RAID_FORM_ASSISTS = "Tanques y líderes de raid marcados como asistentes de banda.",
+    RAID_FORM_LOOT = "Botín: maestro (%s).",
+    RAID_FORM_EXPIRE = "Tiempo de montaje de banda finalizado. Sigue como líder y pulsa Invitar otra vez si hace falta.",
     COPY_PROMPT = "Copiar nombre (Cmd/Ctrl+C):",
 
     WARN_LOW_COUNT = "Por debajo del objetivo",

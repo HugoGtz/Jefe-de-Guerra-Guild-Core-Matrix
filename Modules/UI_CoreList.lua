@@ -135,7 +135,6 @@ function CoreCardMixin:Build()
     self.inviteBtn = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
     self.inviteBtn:SetSize(UI.SIZE.INVITE_BTN_W, 18)
     self.inviteBtn:SetPoint("TOPRIGHT", -UI.SIZE.CARD_PADDING, UI.SIZE.TITLE_Y)
-
     self.count = self:CreateFontString(nil, "OVERLAY", UI.FONT.COUNT)
     self.count:SetTextColor(unpack(UI.COLOR.TEXT_ACCENT))
     self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
@@ -286,6 +285,7 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         self.title:SetPoint("RIGHT", self.count, "LEFT", -10, 0)
         self.warning:SetText("")
         self.inviteBtn:Hide()
+        self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
         self.scheduleText:SetText("")
         self.editScheduleBtn:Hide()
         self.signupBtn:Hide()
@@ -343,6 +343,9 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         end
 
         local coreKey = ns.Schedule and ns.Schedule:CoreKey(typeCode, coreId or 0) or nil
+
+        self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
+
         local slots = coreKey and ns.Schedule and ns.Schedule:GetSlots(coreKey) or {}
         local nextSlot, nextSlotIdx = nil, nil
         if coreKey and ns.Schedule then
@@ -413,19 +416,37 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
 
         self.inviteBtn:Show()
         self.inviteBtn:SetText(ns.L.BTN_INVITE_ALL)
-        self.inviteBtn:SetScript("OnClick", function()
-            local invited = 0
-            local me = UnitName("player")
-            for _, m in ipairs(members) do
-                if m.online and m.name ~= me then
-                    InviteUnit(m.name)
-                    invited = invited + 1
+        self.inviteBtn:SetScript("OnEnter", function(invBtn)
+            GameTooltip:SetOwner(invBtn, "ANCHOR_LEFT")
+            GameTooltip:SetText(ns.L.INVITE_CARD_TOOLTIP_TITLE)
+            GameTooltip:AddLine(ns.L.INVITE_CARD_TOOLTIP_BODY, 1, 1, 1, true)
+            GameTooltip:AddLine(ns.L.INVITE_CARD_TOOLTIP_ML_HINT, 0.75, 0.75, 0.75, true)
+            if coreKey and ns.Database and ns.Database.GetCoreLootMaster then
+                local cur = ns.Database:GetCoreLootMaster(coreKey)
+                if cur then
+                    GameTooltip:AddLine(string.format(ns.L.MASTER_LOOT_CURRENT, cur), 0.4, 1, 0.4)
+                else
+                    GameTooltip:AddLine(ns.L.MASTER_LOOT_CURRENT_NONE, 0.75, 0.75, 0.75)
                 end
+            end
+            GameTooltip:Show()
+        end)
+        self.inviteBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+        self.inviteBtn:SetScript("OnClick", function()
+            local fullMembers = ns.Scanner:GetMembersForCore(typeCode, coreId)
+            local invited = 0
+            if ns.InviteTools and ns.InviteTools.InviteOnlineMembers then
+                invited = ns.InviteTools:InviteOnlineMembers(fullMembers)
             end
             if invited > 0 then
                 print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.INVITE_LOG, invited, coreId or 0))
             else
                 print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.INVITE_NONE, coreId or 0))
+            end
+            if ns.RaidFormation and ns.RaidFormation.Begin and coreKey then
+                ns.RaidFormation:Begin(coreKey, fullMembers)
             end
         end)
     end

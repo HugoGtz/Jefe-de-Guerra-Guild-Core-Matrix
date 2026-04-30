@@ -197,13 +197,25 @@ end
 function ns.UI:ShowMemberMenu(member, anchorFrame, context)
     local L = ns.L
     local name = member.name
+    local inviteTarget = member.rosterName or name
+    local whisperTarget = inviteTarget
     local selfName = UnitName("player")
     local isSelf = selfName and Ambiguate(name or "", "none") == Ambiguate(selfName, "none")
 
     local entries = {
         { text = name, isTitle = true, notCheckable = true },
-        { text = L.MENU_INVITE, notCheckable = true, func = function() InviteUnit(name) end },
-        { text = L.MENU_WHISPER, notCheckable = true, func = function() WhisperPlayer(name) end },
+        {
+            text = L.MENU_INVITE,
+            notCheckable = true,
+            func = function()
+                if ns.InviteTools and ns.InviteTools.InviteOne then
+                    ns.InviteTools:InviteOne(inviteTarget)
+                elseif InviteUnit then
+                    InviteUnit(inviteTarget)
+                end
+            end,
+        },
+        { text = L.MENU_WHISPER, notCheckable = true, func = function() WhisperPlayer(whisperTarget) end },
         { text = L.MENU_COPY, notCheckable = true, func = function() CopyName(name) end },
     }
 
@@ -235,6 +247,19 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
                     text = L.MENU_SET_LEAD,
                     notCheckable = true,
                     func = function() ns.Notes:PromoteLead(name, context.typeCode, context.coreId) end,
+                }
+            end
+            if ns.Notes:IsLootMaster(name, context.typeCode, context.coreId) then
+                entries[#entries + 1] = {
+                    text = L.MENU_CLEAR_MASTER_LOOTER,
+                    notCheckable = true,
+                    func = function() ns.Notes:SetLootMasterInNote(name, context.typeCode, context.coreId, false) end,
+                }
+            else
+                entries[#entries + 1] = {
+                    text = L.MENU_SET_MASTER_LOOTER,
+                    notCheckable = true,
+                    func = function() ns.Notes:SetLootMasterInNote(name, context.typeCode, context.coreId, true) end,
                 }
             end
             entries[#entries + 1] = {

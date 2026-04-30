@@ -193,6 +193,7 @@ function ns.Database:Initialize()
     GCM_Sync.schedules = GCM_Sync.schedules or {}
     GCM_Sync.signups = GCM_Sync.signups or {}
     GCM_Sync.specs = GCM_Sync.specs or {}
+    GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}
     GCM_Sync.meta = GCM_Sync.meta or { version = 1 }
     ns.Sync = GCM_Sync
 
@@ -244,6 +245,27 @@ function ns.Database:RunManualLegacyCoreKeysMigration()
     print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.MIGRATE_SUCCESS, SCHEMA_VERSION))
     if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
     return true
+end
+
+function ns.Database:GetCoreLootMaster(coreKey)
+    if not GCM_Sync or not GCM_Sync.coreRaidPrefs then return nil end
+    local e = GCM_Sync.coreRaidPrefs[coreKey]
+    if type(e) ~= "table" then return nil end
+    local v = e.lootMasterNameKey
+    if not v or v == "" then return nil end
+    return v
+end
+
+function ns.Database:SetCoreLootMaster(coreKey, nameKeyOrNil)
+    if not GCM_Sync then return end
+    GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}
+    if not coreKey or coreKey == "" then return end
+    if not nameKeyOrNil or nameKeyOrNil == "" then
+        GCM_Sync.coreRaidPrefs[coreKey] = nil
+    else
+        GCM_Sync.coreRaidPrefs[coreKey] = { lootMasterNameKey = nameKeyOrNil }
+    end
+    if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
 end
 
 function ns.Database:IsCollapsed(key)

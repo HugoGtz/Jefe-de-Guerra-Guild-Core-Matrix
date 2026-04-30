@@ -10,6 +10,7 @@ ns.Locale:Register("enUS", {
     LOGIN_READY = "Core system ready (UI v1.5.0).",
     SCAN_SUCCESS = "Success: %d members assigned to Cores.",
     SCAN_NO_MATCHES = "No valid [C#] or bench [B] tags in officer notes (legacy [k#/K#/G#] still read until rewritten).",
+    ML_NOTE_CONFLICT = "%s: multiple members have :ML in officer notes (%s). Using %s for raid loot automation.",
 
     BTN_SYNC = "SYNC",
     BTN_INVITE_ALL = "Invite",
@@ -57,6 +58,8 @@ ns.Locale:Register("enUS", {
     MENU_CUSTOM = "Custom",
     MENU_SET_LEAD = "Mark as raid leader",
     MENU_REMOVE_LEAD = "Remove raid leader",
+    MENU_SET_MASTER_LOOTER = "Set as master looter",
+    MENU_CLEAR_MASTER_LOOTER = "Clear master looter",
     LEADER_LABEL = "Raid leader",
     ADDON_PEER_TOOLTIP = "|cff4ade80Guild Core Matrix|r installed — version %s",
     CARD_LEADS_PREFIX = "Leads:",
@@ -80,6 +83,15 @@ ns.Locale:Register("enUS", {
 
     INVITE_LOG = "Invited %d member(s) of Core %d.",
     INVITE_NONE = "No online member to invite in Core %d.",
+    INVITE_CARD_TOOLTIP_TITLE = "Invite",
+    INVITE_CARD_TOOLTIP_BODY = "Invites online members in this core. When you are party leader the addon converts to a raid, promotes tanks and raid leads to assistant, and applies the saved master looter.",
+    INVITE_CARD_TOOLTIP_ML_HINT = "Right-click a member below to change role, spec, raid lead, or master looter for this core.",
+    MASTER_LOOT_CURRENT = "Current: %s",
+    MASTER_LOOT_CURRENT_NONE = "Current: group loot (none)",
+    RAID_FORM_CONVERTED = "Converted the party to a raid.",
+    RAID_FORM_ASSISTS = "Promoted tanks and marked raid leads as raid assistants.",
+    RAID_FORM_LOOT = "Loot: Master Looter (%s).",
+    RAID_FORM_EXPIRE = "Raid setup watch ended. Stay party leader and click Invite again if needed.",
     COPY_PROMPT = "Copy name (Cmd/Ctrl+C):",
 
     WARN_LOW_COUNT = "Below target",

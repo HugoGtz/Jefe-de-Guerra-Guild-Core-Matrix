@@ -22,6 +22,9 @@ function ns.Notes:ParseCoreSegment(seg)
     seg = TrimSegment(seg or "")
     if seg == "" then return nil end
 
+    local lootMaster = seg:match(":ML%s*$") ~= nil
+    if lootMaster then seg = seg:gsub(":ML%s*$", "") end
+
     local lead = seg:match("%*%s*$") ~= nil
     if lead then seg = seg:gsub("%*%s*$", "") end
 
@@ -51,7 +54,7 @@ function ns.Notes:ParseCoreSegment(seg)
                 if last == "T" or last == "H" or last == "D" then role = last end
             end
         end
-        return { typeCode = "B", coreId = 1, role = role, lead = lead, displayName = displayName }
+        return { typeCode = "B", coreId = 1, role = role, lead = lead, displayName = displayName, lootMaster = lootMaster }
     end
 
     local lt, lid, lrole = seg:match("^([kKgG])%s*(%d+):?([THD]?)$")
@@ -62,12 +65,13 @@ function ns.Notes:ParseCoreSegment(seg)
             role = (lrole and lrole ~= "") and lrole or nil,
             lead = lead,
             displayName = nil,
+            lootMaster = lootMaster,
         }
     end
 
     lt, lid, lrole = seg:match("^([kKgG])%s*(%d+)([THD])$")
     if lt and lid and lrole then
-        return { typeCode = "C", coreId = tonumber(lid), role = lrole, lead = lead, displayName = nil }
+        return { typeCode = "C", coreId = tonumber(lid), role = lrole, lead = lead, displayName = nil, lootMaster = lootMaster }
     end
 
     local coreId, tail = seg:match("^[Cc]%s*(%d+)(.*)$")
@@ -94,7 +98,7 @@ function ns.Notes:ParseCoreSegment(seg)
         end
     end
 
-    return { typeCode = "C", coreId = coreId, role = role, lead = lead, displayName = displayName }
+    return { typeCode = "C", coreId = coreId, role = role, lead = lead, displayName = displayName, lootMaster = lootMaster }
 end
 
 function ns.Notes:ParseCoresFromCombined(combined)
@@ -111,6 +115,7 @@ function ns.Notes:ParseCoresFromCombined(combined)
                     role = entry.role,
                     lead = entry.lead == true,
                     displayName = entry.displayName,
+                    lootMaster = entry.lootMaster == true,
                 }
                 count = count + 1
             end
@@ -186,6 +191,7 @@ function ns.Notes:ParseEntries(text)
                     role = entry.role,
                     lead = entry.lead == true,
                     displayName = entry.displayName,
+                    lootMaster = entry.lootMaster == true,
                 }
             end
         end
@@ -214,6 +220,9 @@ local function EntryToString(e)
         if e.lead then
             s = s .. "*"
         end
+        if e.lootMaster then
+            s = s .. ":ML"
+        end
         return s
     end
     local s = string.format("%s%d", e.typeCode, e.coreId)
@@ -225,6 +234,9 @@ local function EntryToString(e)
     end
     if e.lead then
         s = s .. "*"
+    end
+    if e.lootMaster then
+        s = s .. ":ML"
     end
     return s
 end
@@ -238,13 +250,31 @@ local function SortEntries(entries)
 end
 
 local function DedupeEntries(entries)
-    local seen, out = {}, {}
+    local byKey = {}
+    local order = {}
     for _, e in ipairs(entries) do
         local key = e.typeCode .. tostring(e.coreId)
-        if not seen[key] then
-            seen[key] = true
-            out[#out + 1] = e
+        local prev = byKey[key]
+        if prev then
+            if e.lootMaster then prev.lootMaster = true end
+            if e.lead then prev.lead = true end
+            if e.role then prev.role = e.role end
+            if e.displayName and e.displayName ~= "" then prev.displayName = e.displayName end
+        else
+            byKey[key] = {
+                typeCode = e.typeCode,
+                coreId = e.coreId,
+                role = e.role,
+                lead = e.lead and true or false,
+                displayName = e.displayName,
+                lootMaster = e.lootMaster and true or false,
+            }
+            order[#order + 1] = key
         end
+    end
+    local out = {}
+    for _, key in ipairs(order) do
+        out[#out + 1] = byKey[key]
     end
     return out
 end
@@ -286,6 +316,7 @@ local function OptimisticUpdate(name, entries)
             role = e.role,
             lead = e.lead and true or false,
             displayName = e.displayName,
+            lootMaster = e.lootMaster and true or false,
         }
     end
 end
@@ -333,6 +364,8 @@ local function ApplyAndWrite(name, mutator)
 
     OptimisticUpdate(name, mutated)
 
+    if ns.Scanner and ns.Scanner.SyncLootMasterPrefsFromCache then ns.Scanner:SyncLootMasterPrefsFromCache() end
+
     if ns.Scanner.ResetThrottle then ns.Scanner:ResetThrottle() end
     if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
     if ns.Comms and ns.Comms.Broadcast then ns.Comms:Broadcast("RESCAN", "") end
@@ -364,6 +397,30 @@ local function ApplyAndWrite(name, mutator)
     end
 
     return true
+end
+
+function ns.Notes:IsLootMaster(name, typeCode, coreId)
+    if typeCode == "B" then coreId = 1 end
+    if not ns.Cache or not ns.Cache[name] then return false end
+    local list = ns.Cache[name].cores and ns.Cache[name].cores[typeCode]
+    if not list then return false end
+    local r = list[tonumber(coreId)]
+    return type(r) == "table" and r.lootMaster == true
+end
+
+function ns.Notes:SetLootMasterInNote(name, typeCode, coreId, enabled)
+    if typeCode == "B" then coreId = 1 end
+    coreId = tonumber(coreId)
+    print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: LOOTMASTER %s %s%d -> %s", name, typeCode, coreId, tostring(enabled)))
+    return ApplyAndWrite(name, function(entries)
+        for _, e in ipairs(entries) do
+            if e.typeCode == typeCode and e.coreId == coreId then
+                e.lootMaster = enabled and true or nil
+                return entries
+            end
+        end
+        return entries
+    end)
 end
 
 function ns.Notes:Assign(name, typeCode, coreId)

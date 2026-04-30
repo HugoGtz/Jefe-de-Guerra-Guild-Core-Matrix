@@ -14,6 +14,41 @@ local function ParseCoresFromNotes(combined)
     return {}, 0
 end
 
+function ns.Scanner:SyncLootMasterPrefsFromCache()
+    if not GCM_Sync or not ns.Schedule then return end
+    GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}
+    local holders = {}
+    for name, entry in pairs(ns.Cache or {}) do
+        if entry.cores then
+            for tc, list in pairs(entry.cores) do
+                for cid, cell in pairs(list) do
+                    if type(cell) == "table" and cell.lootMaster then
+                        local key = ns.Schedule:CoreKey(tc, tonumber(cid) or 0)
+                        holders[key] = holders[key] or {}
+                        holders[key][#holders[key] + 1] = name
+                    end
+                end
+            end
+        end
+    end
+    local discovered = self:GetDiscoveredCores()
+    for tc, ids in pairs(discovered) do
+        for cid in pairs(ids) do
+            local key = ns.Schedule:CoreKey(tc, tonumber(cid) or 0)
+            local list = holders[key]
+            if list and #list > 0 then
+                table.sort(list)
+                GCM_Sync.coreRaidPrefs[key] = { lootMasterNameKey = list[1] }
+                if #list > 1 and ns.L and ns.L.ML_NOTE_CONFLICT then
+                    print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.ML_NOTE_CONFLICT, key, table.concat(list, ", "), list[1]))
+                end
+            else
+                GCM_Sync.coreRaidPrefs[key] = nil
+            end
+        end
+    end
+end
+
 function ns.Scanner:ParseGuildNotes(opts)
     opts = opts or {}
     if not IsInGuild() then return end
@@ -38,9 +73,10 @@ function ns.Scanner:ParseGuildNotes(opts)
             local cores, count = ParseCoresFromNotes(combined)
 
             ns.Cache[cleanName] = {
+                rosterName = name,
                 class = classFileName,
                 level = level,
-                online = online and true or false,
+                online = (online == true or online == 1),
                 zone = zone,
                 publicNote = publicNote,
                 lastOnline = { years = years or 0, months = months or 0, days = days or 0, hours = hours or 0 },
@@ -67,6 +103,8 @@ function ns.Scanner:ParseGuildNotes(opts)
         end
     end
 
+    self:SyncLootMasterPrefsFromCache()
+
     if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
 end
 
@@ -78,13 +116,13 @@ end
 
 local function ReadAssignment(data)
     if type(data) == "table" then
-        return data.role, data.lead == true
+        return data.role, data.lead == true, data.lootMaster == true
     elseif data == true then
-        return nil, false
+        return nil, false, false
     elseif type(data) == "string" then
-        return data, false
+        return data, false, false
     end
-    return nil, false
+    return nil, false, false
 end
 
 function ns.Scanner:GetMembersForCore(typeCode, coreId)
@@ -94,9 +132,10 @@ function ns.Scanner:GetMembersForCore(typeCode, coreId)
     for name, entry in pairs(ns.Cache) do
         local list = entry.cores and entry.cores[typeCode]
         if list and list[coreId] then
-            local role, lead = ReadAssignment(list[coreId])
+            local role, lead, lootMaster = ReadAssignment(list[coreId])
             out[#out + 1] = {
                 name = name,
+                rosterName = entry.rosterName or name,
                 class = entry.class,
                 level = entry.level,
                 online = entry.online,
@@ -105,6 +144,7 @@ function ns.Scanner:GetMembersForCore(typeCode, coreId)
                 lastOnline = entry.lastOnline,
                 role = role,
                 lead = lead,
+                lootMaster = lootMaster,
                 hasConflict = list and CountKeys(list) > 1,
                 conflictCount = list and CountKeys(list) or 0,
             }
@@ -137,6 +177,7 @@ function ns.Scanner:GetUnassignedMembers()
         if not entry.cores or not next(entry.cores) then
             out[#out + 1] = {
                 name = name,
+                rosterName = entry.rosterName or name,
                 class = entry.class,
                 level = entry.level,
                 online = entry.online,
