@@ -91,7 +91,23 @@ Copies the addon into your local `_anniversary_` client (see script for `GCM_WOW
 
 Builds `dist/GuildCoreMatrix-<version>.zip` (CurseForge layout). Automatic builds from Git can use `.pkgmeta` plus a [CurseForge repository webhook](https://support.curseforge.com/support/solutions/articles/9000197281-automatic-packaging).
 
-Pushing to the default branch triggers that packaging flow when the webhook and token are set on GitHub and CurseForge. Check **Files** on the project after a minute; use GitHub **Webhooks → Recent Deliveries** if nothing appears.
+**CurseForge release:** packaging uses an annotated tag (`v` + semver) on the commit that contains that `GuildCoreMatrix.toc` version.
+
+Default flow (clean git tree required):
+
+```bash
+./scripts/release.sh
+```
+
+Bump **patch** → commit TOC → tag → **`git push origin HEAD`** → **`git push origin vX.Y.Z`**. Same via `./package.sh release`. Use `minor`, `major`, or `set X.Y.Z` before any flags.
+
+- **`--no-push`** — bump, commit, and tag locally only.
+- **`--bump-only`** — only edits the TOC (no git).
+- **`--tag-only`** — tag the **current committed** HEAD (no bump); no push unless you add **`--push`** (then HEAD first, then tag).
+
+`--tag-only` fails if the TOC has uncommitted edits. **`--allow-dirty`** allows other modified files; the TOC must still match `HEAD`.
+
+Pushing the branch alone often does not publish a new build; **tags** are the usual trigger. Check GitHub **Webhooks → Recent Deliveries** if nothing appears.
 
 ---
 

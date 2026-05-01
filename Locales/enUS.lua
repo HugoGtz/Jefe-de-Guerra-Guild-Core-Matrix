@@ -7,7 +7,7 @@ ns.Locale:Register("enUS", {
     HEADER_TITLE = "|cffffd100GUILDCOREMATRIX|r - CORE MANAGEMENT",
     TOOLTIP_TITLE = "|cffff0000GuildCoreMatrix|r\nCore Management",
 
-    LOGIN_READY = "Core system ready (UI v1.5.0).",
+    LOGIN_READY = "Core system ready (UI v%s).",
     SCAN_SUCCESS = "Success: %d members assigned to Cores.",
     SCAN_NO_MATCHES = "No valid [C#] or bench [B] tags in officer notes (legacy [k#/K#/G#] still read until rewritten).",
     ML_NOTE_CONFLICT = "%s: multiple members have :ML in officer notes (%s). Using %s for raid loot automation.",

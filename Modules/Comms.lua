@@ -167,14 +167,19 @@ end
 function ns.Comms:Init()
     RegisterPrefix(PREFIX)
     do
-        local v
-        if C_AddOns and C_AddOns.GetAddOnMetadata then
-            v = C_AddOns.GetAddOnMetadata(addonName, "Version")
+        local v = ns.addonVersion
+        if not v or v == "" or v == "?" then
+            if C_AddOns and C_AddOns.GetAddOnMetadata then
+                v = C_AddOns.GetAddOnMetadata(addonName, "Version")
+            end
+            if (not v or v == "") and GetAddOnMetadata then
+                v = GetAddOnMetadata(addonName, "Version")
+            end
+            v = (v and v ~= "") and v:gsub("|", ""):sub(1, 24) or "?"
+        else
+            v = v:gsub("|", ""):sub(1, 24)
         end
-        if (not v or v == "") and GetAddOnMetadata then
-            v = GetAddOnMetadata(addonName, "Version")
-        end
-        self.addonVersion = (v and v ~= "") and v:gsub("|", ""):sub(1, 24) or "?"
+        self.addonVersion = (v and v ~= "") and v or "?"
     end
     if not self.frame then
         self.frame = CreateFrame("Frame")

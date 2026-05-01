@@ -8,6 +8,16 @@ frame:RegisterEvent("GROUP_ROSTER_UPDATE")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" and ... == addonName then
+        do
+            local v
+            if C_AddOns and C_AddOns.GetAddOnMetadata then
+                v = C_AddOns.GetAddOnMetadata(addonName, "Version")
+            end
+            if (not v or v == "") and GetAddOnMetadata then
+                v = GetAddOnMetadata(addonName, "Version")
+            end
+            ns.addonVersion = (v and v ~= "") and v:gsub("|", "") or "?"
+        end
         ns.Database:Initialize()
         ns.Locale:Activate()
         ns.Database:ApplySchemaUpgrades()
@@ -19,7 +29,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if ns.LFG and ns.LFG.Init then ns.LFG:Init() end
         if ns.RaidFormation and ns.RaidFormation.Init then ns.RaidFormation:Init() end
     elseif event == "PLAYER_LOGIN" then
-        print(ns.L.BRAND .. " " .. ns.L.LOGIN_READY)
+        print(ns.L.BRAND .. " " .. string.format(ns.L.LOGIN_READY, ns.addonVersion or "?"))
         if GuildRoster then GuildRoster() end
         ns.Scanner:ParseGuildNotes()
         if ns.Schedule and ns.Schedule.RequestSync then ns.Schedule:RequestSync() end

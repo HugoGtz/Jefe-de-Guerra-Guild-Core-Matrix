@@ -2,6 +2,12 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+if [[ "${1:-}" == "release" ]]; then
+  shift
+  exec "$ROOT/scripts/release.sh" "$@"
+fi
+
 VERSION="$(sed -n 's/^## Version: //p' "$ROOT/GuildCoreMatrix.toc" | head -1 | tr -d '\r')"
 if [[ -z "$VERSION" ]]; then
   echo "ERROR: Could not read ## Version from GuildCoreMatrix.toc" >&2

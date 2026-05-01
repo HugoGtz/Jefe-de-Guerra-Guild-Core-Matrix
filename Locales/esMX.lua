@@ -7,7 +7,7 @@ ns.Locale:Register("esMX", {
     HEADER_TITLE = "|cffffd100JEFE DE GUERRA|r - GESTIÓN DE CORES",
     TOOLTIP_TITLE = "|cffff0000Jefe de Guerra|r\nGestión de Cores",
 
-    LOGIN_READY = "Sistema de Cores listo (UI v1.5.0).",
+    LOGIN_READY = "Sistema de Cores listo (UI v%s).",
     SCAN_SUCCESS = "Listo: %d miembros asignados a Cores.",
     SCAN_NO_MATCHES = "No hay etiquetas [C#] o de banca [B] válidas en notas de oficial (las viejas [k#/K#/G#] siguen leyéndose hasta reescribirlas).",
     ML_NOTE_CONFLICT = "%s: varios miembros tienen :ML en las notas de oficial (%s). Se usará %s para el botín automático.",

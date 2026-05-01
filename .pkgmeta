@@ -4,5 +4,6 @@ enable-nolib-creation: no
 ignore:
     - install.sh
     - package.sh
+    - scripts
     - dist
     - AGENTS.md

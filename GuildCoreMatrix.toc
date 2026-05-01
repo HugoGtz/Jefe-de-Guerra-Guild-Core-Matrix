@@ -2,7 +2,7 @@
 ## Title: |cffff0000Jefe de Guerra|r - Gestión de Cores
 ## Notes: Management system for 10/25-man cores.
 ## Author: Hugo Gutierrez (Jefe de Guerra)
-## Version: 1.5.0
+## Version: 1.5.1
 ## X-Curse-Project-ID: 1528360
 ## SavedVariables: GCM_Settings, GCM_Sync
 ## SavedVariablesPerCharacter: GCM_Cache

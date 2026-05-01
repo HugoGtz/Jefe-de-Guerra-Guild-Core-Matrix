@@ -43,8 +43,10 @@ TOC right after the existing locales.
 - `string.format` placeholders go inside the locale value. Document the order
   of arguments via the key name when ambiguous (e.g. `LABEL_CORE_ROW = "%s Core %d:"`).
 - Color codes (`|cffXXXXXX...|r`) belong in the locale value when they carry
-  branding (e.g. `BRAND`, `BRAND_GREEN`). At call sites use string concat:
-  `print(ns.L.BRAND .. " " .. ns.L.LOGIN_READY)`.
+  branding (e.g. `BRAND`, `BRAND_GREEN`). Addon release version comes from the
+  TOC (`## Version`) via `ns.addonVersion` set in `Core.lua` on load; localized
+  login lines use a `%s` placeholder, e.g.
+  `print(ns.L.BRAND .. " " .. string.format(ns.L.LOGIN_READY, ns.addonVersion or "?"))`.
 - The `Locales/*.lua` files are the **only** Lua files allowed to contain
   non-English text. Everything else (variable names, function names, keys,
   log keys) stays in English.
