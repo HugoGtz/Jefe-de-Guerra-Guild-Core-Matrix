@@ -29,6 +29,23 @@ function ns.UI:GetClassIcon(className)
     return ""
 end
 
+local ROLE_PORTRAIT_TEXCOORD = {
+    T = { 0 / 64, 19 / 64, 22 / 64, 41 / 64 },
+    H = { 20 / 64, 39 / 64, 1 / 64, 20 / 64 },
+    D = { 20 / 64, 39 / 64, 22 / 64, 41 / 64 },
+}
+
+function ns.UI:SetRolePortraitTexture(texture, role)
+    local c = ROLE_PORTRAIT_TEXCOORD[role]
+    texture:SetTexture("Interface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES")
+    if c then
+        texture:SetTexCoord(c[1], c[2], c[3], c[4])
+        texture:Show()
+    else
+        texture:Hide()
+    end
+end
+
 function ns.UI:GetRoleIcon(role)
     if role == "T" then
         return "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:0:19:22:41|t"

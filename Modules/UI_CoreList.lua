@@ -438,20 +438,28 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
             if ns.Scanner and ns.Scanner.ParseGuildNotesNow then
                 ns.Scanner:ParseGuildNotesNow({})
             end
-            local fullMembers = ns.Scanner:GetMembersForCore(typeCode, coreId)
-            local invited, onlineInCore = 0, 0
-            if ns.InviteTools and ns.InviteTools.InviteOnlineMembers then
-                invited, onlineInCore = ns.InviteTools:InviteOnlineMembers(fullMembers)
+            if coreKey and ns.RaidFormation and ns.RaidFormation.SetWatchCore then
+                ns.RaidFormation:SetWatchCore(coreKey)
             end
-            if invited > 0 then
+            local fullMembers = ns.Scanner:GetMembersForCore(typeCode, coreId)
+            local invited, onlineInCore, permBlocked, diag = 0, 0, false, nil
+            if ns.InviteTools and ns.InviteTools.InviteOnlineMembers then
+                invited, onlineInCore, permBlocked, diag = ns.InviteTools:InviteOnlineMembers(fullMembers)
+            end
+            if invited == 0 and diag then
+                ns.InviteTools:PrintInviteDiagnostics(coreId, diag, permBlocked)
+            end
+            if permBlocked then
+                print(ns.L.BRAND_YELLOW .. " " .. ns.L.INVITE_NEED_PERMISSION)
+            elseif invited > 0 then
                 print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.INVITE_LOG, invited, coreId or 0))
             elseif onlineInCore > 0 then
                 print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.INVITE_NONE_ALREADY_GROUPED, coreId or 0))
             else
                 print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.INVITE_NONE, coreId or 0))
             end
-            if ns.RaidFormation and ns.RaidFormation.Begin and coreKey then
-                ns.RaidFormation:Begin(coreKey, fullMembers)
+            if invited > 0 and ns.RaidFormation and ns.RaidFormation.Begin and coreKey then
+                ns.RaidFormation:Begin(coreKey, fullMembers, { invitedCount = invited })
             end
         end)
     end

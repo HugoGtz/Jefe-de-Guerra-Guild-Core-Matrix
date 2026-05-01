@@ -24,6 +24,18 @@ local function CoerceGuildOnline(v)
     return false
 end
 
+local function EffectiveGuildOnline(onlineRaw, years, months, days, hours, status)
+    if CoerceGuildOnline(onlineRaw) then return true end
+    local anyPresent = years ~= nil or months ~= nil or days ~= nil or hours ~= nil
+    local z = (years or 0) == 0 and (months or 0) == 0 and (days or 0) == 0 and (hours or 0) == 0
+    if anyPresent then return z end
+    if onlineRaw == false then return false end
+    if onlineRaw == nil then
+        return type(status) == "number" and status >= 0 and status <= 2
+    end
+    return false
+end
+
 function ns.Scanner:SyncLootMasterPrefsFromCache()
     if not GCM_Sync or not ns.Schedule then return end
     GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}
@@ -91,7 +103,7 @@ function ns.Scanner:ParseGuildNotesNow(opts)
     local rosterSize = GetNumGuildMembers()
 
     for i = 1, rosterSize do
-        local name, _, _, level, _, zone, publicNote, officerNote, online, _, classFileName = GetGuildRosterInfo(i)
+        local name, _, _, level, _, zone, publicNote, officerNote, online, status, classFileName = GetGuildRosterInfo(i)
 
         if name then
             local cleanName = Ambiguate(name, "none")
@@ -112,7 +124,7 @@ function ns.Scanner:ParseGuildNotesNow(opts)
                 rosterName = name,
                 class = classFileName,
                 level = level,
-                online = CoerceGuildOnline(online),
+                online = EffectiveGuildOnline(online, years, months, days, hours, status),
                 zone = zone,
                 publicNote = publicNote,
                 lastOnline = { years = years or 0, months = months or 0, days = days or 0, hours = hours or 0 },

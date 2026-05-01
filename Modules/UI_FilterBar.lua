@@ -158,9 +158,61 @@ btnMine:SetScript("OnClick", function()
 end)
 local btnUnassigned = MakeToggle(Bar, "showUnassigned")
 local btnNoRole = MakeToggle(Bar, "noRole")
-local btnTanks = MakeToggle(Bar, "role", "T")
-local btnHealers = MakeToggle(Bar, "role", "H")
-local btnDps = MakeToggle(Bar, "role", "D")
+
+local function MakeRoleFilterToggle(roleCode, tipKey)
+    local btn = CreateFrame("Button", nil, Bar)
+    btn:SetSize(UI.SIZE.CLASS_BTN, UI.SIZE.CLASS_BTN)
+
+    btn.bg = btn:CreateTexture(nil, "BACKGROUND")
+    btn.bg:SetAllPoints()
+    btn.bg:SetTexture(UI.COLOR.WHITE_TEX)
+    btn.bg:SetVertexColor(unpack(UI.COLOR.BTN_OFF))
+
+    btn.icon = btn:CreateTexture(nil, "ARTWORK")
+    btn.icon:SetSize(20, 20)
+    btn.icon:SetPoint("CENTER", 0, 0)
+    ns.UI:SetRolePortraitTexture(btn.icon, roleCode)
+
+    btn.key = "role"
+    btn.valueOn = roleCode
+    btn.tipKey = tipKey
+
+    btn:SetScript("OnClick", function(self)
+        local cur = ns.UI.Filter[self.key]
+        if cur == self.valueOn then
+            ns.UI.Filter[self.key] = nil
+        else
+            ns.UI.Filter[self.key] = self.valueOn
+        end
+        ns.UI.FilterBar:UpdateVisualState()
+        if ns.UI.Refresh then ns.UI:Refresh() end
+    end)
+
+    btn.OnTipEnter = function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(ns.L[self.tipKey], 1, 1, 1)
+        GameTooltip:AddLine(ns.L.FILTER_ROLE_TIP, 0.65, 0.65, 0.7, true)
+        GameTooltip:Show()
+    end
+
+    btn:SetScript("OnEnter", function(self)
+        local on = ns.UI.Filter.role == roleCode
+        if not on then
+            self.bg:SetVertexColor(unpack(UI.COLOR.BTN_HOVER))
+        end
+        self:OnTipEnter()
+    end)
+    btn:SetScript("OnLeave", function()
+        ns.UI.FilterBar:UpdateVisualState()
+        GameTooltip:Hide()
+    end)
+
+    return btn
+end
+
+local btnTanks = MakeRoleFilterToggle("T", "FILTER_TANKS")
+local btnHealers = MakeRoleFilterToggle("H", "FILTER_HEALERS")
+local btnDps = MakeRoleFilterToggle("D", "FILTER_DPS")
 
 local classButtons = {}
 
@@ -307,7 +359,7 @@ end
 
 local function FitToggles()
     local pad = 12
-    for _, b in ipairs({ btnOnline, btnMine, btnUnassigned, btnNoRole, btnTanks, btnHealers, btnDps, btnClear }) do
+    for _, b in ipairs({ btnOnline, btnMine, btnUnassigned, btnNoRole, btnClear }) do
         local w = b.text:GetStringWidth() + pad
         if w < 32 then w = 32 end
         b:SetWidth(w)
@@ -397,10 +449,10 @@ ns.Locale:RegisterCallback(function()
     btnMine.text:SetText(ns.L.FILTER_MINE)
     btnUnassigned.text:SetText(ns.L.FILTER_UNASSIGNED)
     btnNoRole.text:SetText(ns.L.FILTER_NO_ROLE)
-    btnTanks.text:SetText(ns.L.FILTER_TANKS)
-    btnHealers.text:SetText(ns.L.FILTER_HEALERS)
-    btnDps.text:SetText(ns.L.FILTER_DPS)
     btnClear.text:SetText(ns.L.FILTER_CLEAR)
+    ns.UI:SetRolePortraitTexture(btnTanks.icon, "T")
+    ns.UI:SetRolePortraitTexture(btnHealers.icon, "H")
+    ns.UI:SetRolePortraitTexture(btnDps.icon, "D")
     for _, btn in ipairs(classButtons) do
         ns.UI:SetClassCircleTexture(btn.icon, btn.classFile)
     end

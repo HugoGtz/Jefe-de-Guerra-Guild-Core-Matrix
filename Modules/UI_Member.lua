@@ -211,8 +211,8 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
             func = function()
                 if ns.InviteTools and ns.InviteTools.InviteOne then
                     ns.InviteTools:InviteOne(inviteTarget)
-                elseif InviteUnit then
-                    InviteUnit(inviteTarget)
+                elseif ns.InviteTools and ns.InviteTools.DispatchInvite and ns.InviteTools:PlayerCanInvite() then
+                    ns.InviteTools:DispatchInvite(inviteTarget)
                 end
             end,
         },
