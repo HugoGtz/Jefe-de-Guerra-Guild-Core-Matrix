@@ -123,10 +123,14 @@ local function ApplyAssistPromotions(keys)
         local delay = (slot - 1) * 0.12
         if C_Timer and C_Timer.After then
             C_Timer.After(delay, function()
-                if UnitExists(unitCopy) then promoteFn(unitCopy) end
+                if UnitExists(unitCopy) then
+                    local name = UnitName(unitCopy)
+                    if name and name ~= "" then promoteFn(name) end
+                end
             end)
         else
-            promoteFn(unitCopy)
+            local name = UnitName(u)
+            if name and name ~= "" then promoteFn(name) end
         end
     end)
 end
@@ -139,8 +143,7 @@ local function ApplyLootMaster(nk)
     if not PlayerIsLeader() then return false end
     local u = RaidUnitForNameKey(nk)
     if not u then return false end
-    local nm = UnitFullName(u)
-    if not nm or nm == "" then nm = UnitName(u) end
+    local nm = UnitName(u)  -- Classic API expects plain name, no realm suffix
     if not nm or nm == "" then return false end
     sm("master", nm)
     return true
@@ -203,7 +206,7 @@ local function ScheduleFormationPulses(invitedCount)
     local n = tonumber(invitedCount) or 0
     local first = (n <= 0) and 0.75 or math.min(12.0, math.max(0.85, (n - 1) * gap + 1.2))
     local pg = pulseGen
-    local delays = { first, first + 2.5, first + 6.5 }
+    local delays = { first, first + 2.5, first + 6.5, first + 14.0, first + 25.0, first + 45.0 }
     for i = 1, #delays do
         local d = delays[i]
         C_Timer.After(d, function()

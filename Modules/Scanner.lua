@@ -112,26 +112,36 @@ function ns.Scanner:ParseGuildNotesNow(opts)
             local cores, count = ParseCoresFromNotes(combined)
             local lfgTags = {}
             local lfgDetail = ""
+            local lfgUpdatedAt = 0
+            local lfgMode = "LFG"
             local syncLF = ns.Sync and ns.Sync.lfg and ns.Sync.lfg[cleanName]
             if syncLF then
                 for _, t in ipairs(syncLF.tags or {}) do
                     lfgTags[#lfgTags + 1] = t
                 end
-                lfgDetail = syncLF.detail or ""
+                lfgDetail    = syncLF.detail    or ""
+                lfgUpdatedAt = syncLF.updatedAt or 0
+                lfgMode      = syncLF.mode      or "LFG"
             end
 
             ns.Cache[cleanName] = {
-                rosterName = name,
-                class = classFileName,
-                level = level,
-                online = EffectiveGuildOnline(online, years, months, days, hours, status),
-                zone = zone,
-                publicNote = publicNote,
-                lastOnline = { years = years or 0, months = months or 0, days = days or 0, hours = hours or 0 },
-                cores = cores,
-                lfg = lfgTags,
-                lfgDetail = lfgDetail,
+                rosterName   = name,
+                class        = classFileName,
+                level        = level,
+                online       = EffectiveGuildOnline(online, years, months, days, hours, status),
+                zone         = zone,
+                publicNote   = publicNote,
+                lastOnline   = { years = years or 0, months = months or 0, days = days or 0, hours = hours or 0 },
+                cores        = cores,
+                lfg          = lfgTags,
+                lfgDetail    = lfgDetail,
+                lfgUpdatedAt = lfgUpdatedAt,
+                lfgMode      = lfgMode,
             }
+
+            if ns.Professions and ns.Professions.PushToCache then
+                ns.Professions:PushToCache(cleanName)
+            end
 
             foundCount = foundCount + count
         end

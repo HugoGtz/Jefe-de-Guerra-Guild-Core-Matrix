@@ -1,8 +1,10 @@
 local addonName, ns = ...
 ns.UI = ns.UI or {}
 
+local Theme = ns.Theme
+
 local UI = {
-    SPACING = { CARD = 14, ROW_GAP = 4, INNER = 10 },
+    SPACING = { CARD = 12, ROW_GAP = 2, INNER = 10 },
     SIZE = {
         ROW_HEIGHT = 22,
         ACCENT_BAR = 3,
@@ -28,19 +30,15 @@ local UI = {
         COUNT = "GameFontNormal",
     },
     COLOR = {
-        CARD_BG = { 0.08, 0.08, 0.10, 0.85 },
-        CARD_BG_UNASSIGNED = { 0.06, 0.06, 0.08, 0.75 },
-        CARD_BORDER = { 0.20, 0.20, 0.25, 1.0 },
-        CARD_BORDER_WARN = { 0.95, 0.55, 0.10, 1.0 },
-        CARD_BORDER_CRIT = { 0.95, 0.20, 0.20, 1.0 },
-        TEXT_DIM = { 0.65, 0.65, 0.65, 1.0 },
-        TEXT_ACCENT = { 1.0, 0.82, 0.0, 1.0 },
-        SEPARATOR = { 0.25, 0.25, 0.30, 0.6 },
-        TANK_TXT = { 0.45, 0.62, 1.0, 1 },
-        HEAL_TXT = { 0.30, 0.85, 0.40, 1 },
-        DPS_TXT = { 0.95, 0.50, 0.40, 1 },
-        WHITE_TEX = "Interface\\Buttons\\WHITE8X8",
-        TOOLTIP_BORDER = "Interface\\Tooltips\\UI-Tooltip-Border",
+        -- File-specific colors (not shared with other UI files)
+        CARD_BG           = { 0.08, 0.08, 0.11, 0.88 },
+        CARD_BG_UNASSIGNED = { 0.06, 0.06, 0.08, 0.78 },
+        CARD_BORDER_WARN  = { 0.95, 0.55, 0.10, 1.0 },
+        CARD_BORDER_CRIT  = { 0.95, 0.20, 0.20, 1.0 },
+        TEXT_DIM          = { 0.62, 0.62, 0.66, 1.0 },
+        TANK_TXT          = { 0.45, 0.62, 1.0, 1 },
+        HEAL_TXT          = { 0.30, 0.85, 0.40, 1 },
+        DPS_TXT           = { 0.95, 0.50, 0.40, 1 },
     },
     TYPE_COLOR = {
         C = { 0.45, 0.78, 1.00, 1 },
@@ -58,9 +56,10 @@ end
 local MainFrame = ns.UI.MainFrame
 local FilterBar = ns.UI.FilterBar
 
-local CoreListPanel = CreateFrame("Frame", nil, MainFrame)
-CoreListPanel:SetPoint("TOPLEFT", FilterBar, "BOTTOMLEFT", 0, -6)
-CoreListPanel:SetPoint("BOTTOMRIGHT", MainFrame, "BOTTOMRIGHT", -10, 10)
+local CoreListPanel = CreateFrame("Frame", "GCM_CoreListPanel", MainFrame)
+CoreListPanel:SetPoint("TOPLEFT", FilterBar, "BOTTOMLEFT", 0, -4)
+CoreListPanel:SetPoint("BOTTOMRIGHT", MainFrame, "BOTTOMRIGHT", -8, 8)
+ns.UI.CoreListPanel = CoreListPanel
 
 local Scroll = CreateFrame("ScrollFrame", "GCM_CoreListScroll", CoreListPanel, "UIPanelScrollFrameTemplate")
 Scroll:SetPoint("TOPLEFT", 0, 0)
@@ -74,7 +73,7 @@ local EmptyText = CoreListPanel:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
 EmptyText:SetPoint("CENTER")
 EmptyText:SetWidth(360)
 EmptyText:SetJustifyH("CENTER")
-EmptyText:SetTextColor(unpack(UI.COLOR.TEXT_DIM))
+EmptyText:SetTextColor(unpack(UI.COLOR.TEXT_DIM))  -- file-specific dim text
 EmptyText:Hide()
 
 local function ComputeComposition(members)
@@ -111,16 +110,16 @@ local CoreCardMixin = {}
 
 function CoreCardMixin:Build()
     self:SetBackdrop({
-        bgFile = UI.COLOR.WHITE_TEX,
-        edgeFile = UI.COLOR.TOOLTIP_BORDER,
+        bgFile = Theme.TEX_WHITE,
+        edgeFile = Theme.TEX_BORDER,
         edgeSize = 12,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
     })
     self:SetBackdropColor(unpack(UI.COLOR.CARD_BG))
-    self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER))
+    self:SetBackdropBorderColor(unpack(Theme.BORDER_CARD))
 
     self.accent = self:CreateTexture(nil, "ARTWORK")
-    self.accent:SetTexture(UI.COLOR.WHITE_TEX)
+    self.accent:SetTexture(Theme.TEX_WHITE)
     self.accent:SetPoint("TOPLEFT", 4, -4)
     self.accent:SetPoint("BOTTOMLEFT", 4, 4)
     self.accent:SetWidth(UI.SIZE.ACCENT_BAR)
@@ -136,7 +135,7 @@ function CoreCardMixin:Build()
     self.inviteBtn:SetSize(UI.SIZE.INVITE_BTN_W, 18)
     self.inviteBtn:SetPoint("TOPRIGHT", -UI.SIZE.CARD_PADDING, UI.SIZE.TITLE_Y)
     self.count = self:CreateFontString(nil, "OVERLAY", UI.FONT.COUNT)
-    self.count:SetTextColor(unpack(UI.COLOR.TEXT_ACCENT))
+    self.count:SetTextColor(unpack(Theme.BRAND_GOLD))
     self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
 
     self.leader = self:CreateFontString(nil, "OVERLAY", UI.FONT.SMALL)
@@ -161,7 +160,7 @@ function CoreCardMixin:Build()
     self.warning:SetPoint("TOPRIGHT", self, "TOPRIGHT", -UI.SIZE.CARD_PADDING, UI.SIZE.META_Y)
     self.warning:SetWidth(UI.SIZE.WARNING_MAX_W)
     self.warning:SetJustifyH("RIGHT")
-    self.warning:SetTextColor(unpack(UI.COLOR.CARD_BORDER_WARN))
+    self.warning:SetTextColor(unpack(UI.COLOR.CARD_BORDER_WARN))  -- initial default, overridden in Update
     self.warning:SetWordWrap(false)
     self.warning:SetText("")
 
@@ -189,8 +188,8 @@ function CoreCardMixin:Build()
     self.scheduleText:SetTextColor(0.85, 0.85, 0.95, 1)
 
     self.separator = self:CreateTexture(nil, "ARTWORK")
-    self.separator:SetTexture(UI.COLOR.WHITE_TEX)
-    self.separator:SetVertexColor(unpack(UI.COLOR.SEPARATOR))
+    self.separator:SetTexture(Theme.TEX_WHITE)
+    self.separator:SetVertexColor(unpack(Theme.SEP))
     self.separator:SetHeight(1)
     self.separator:SetPoint("TOPLEFT", self.accent, "TOPRIGHT", UI.SPACING.INNER, -UI.SIZE.HEADER_OFFSET_FULL)
     self.separator:SetPoint("RIGHT", -UI.SIZE.CARD_PADDING, 0)
@@ -277,7 +276,7 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
 
     if typeCode == "U" then
         self:SetBackdropColor(unpack(UI.COLOR.CARD_BG_UNASSIGNED))
-        self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER))
+        self:SetBackdropBorderColor(unpack(Theme.BORDER_CARD))
         self.composition:SetText("")
         self.leader:SetText("")
         self.title:ClearAllPoints()
@@ -327,18 +326,18 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
 
         local warnLevel = GetWarningLevel(typeCode, members, t, h)
         if typeCode == "B" then
-            self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER))
+            self:SetBackdropBorderColor(unpack(Theme.BORDER_CARD))
             self.warning:SetText("")
         elseif warnLevel == "crit" then
             self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER_CRIT))
-            self.warning:SetTextColor(unpack(UI.COLOR.CARD_BORDER_CRIT))
+            self.warning:SetTextColor(unpack(UI.COLOR.CARD_BORDER_CRIT))  -- file-specific crit red
             self.warning:SetText(t == 0 and ns.L.WARN_NO_TANK or ns.L.WARN_NO_HEALER)
         elseif warnLevel == "warn" then
             self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER_WARN))
-            self.warning:SetTextColor(unpack(UI.COLOR.CARD_BORDER_WARN))
+            self.warning:SetTextColor(unpack(UI.COLOR.CARD_BORDER_WARN))  -- file-specific warn orange
             self.warning:SetText(ns.L.WARN_LOW_COUNT)
         else
-            self:SetBackdropBorderColor(unpack(UI.COLOR.CARD_BORDER))
+            self:SetBackdropBorderColor(unpack(Theme.BORDER_CARD))
             self.warning:SetText("")
         end
 
@@ -494,7 +493,7 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         for _, m in ipairs(members) do
             visible = visible + 1
             local row = self:GetRow(visible)
-            row:SetData(m, rowContext)
+            row:SetData(m, rowContext, visible)
         end
         self:HideRowsFrom(visible + 1)
 
@@ -634,16 +633,65 @@ function ns.UI:RefreshCoreList()
 end
 
 function ns.UI:Refresh()
+    if ns.UI.SelfBar and ns.UI.SelfBar.Refresh then ns.UI.SelfBar:Refresh() end
     if ns.UI.ActivePanel == "lfg" then
         if ns.UI.RefreshLFGList then ns.UI:RefreshLFGList() end
+    elseif ns.UI.ActivePanel == "prof" then
+        if ns.UI.RefreshProfessions then ns.UI:RefreshProfessions() end
     elseif ns.UI.CoreListPanel and ns.UI.CoreListPanel:IsShown() then
         ns.UI:RefreshCoreList()
     end
 end
 
-ns.UI.CoreListPanel = CoreListPanel
+function ns.UI:SetMainPanel(mode)
+    ns.UI.ActivePanel = mode
+    local isCores = (mode == "cores")
+    local isLfg = (mode == "lfg")
+    local isProf = (mode == "prof")
+    if ns.UI.FilterBar and ns.UI.FilterBar.SetCoreFiltersVisible then
+        ns.UI.FilterBar:SetCoreFiltersVisible(isCores and "cores" or "lfg")
+    end
+    local coresPanel = ns.UI.CoreListPanel or _G.GCM_CoreListPanel
+    local lfgPanel = ns.UI.LFGPanel or _G.GCM_LFGPanel
+    local profPanel = ns.UI.ProfPanel or _G.GCM_ProfPanel
+    if coresPanel then
+        coresPanel:SetShown(isCores)
+        if isCores then coresPanel:Show() else coresPanel:Hide() end
+    end
+    if lfgPanel then
+        lfgPanel:SetShown(isLfg)
+        if isLfg then lfgPanel:Show() else lfgPanel:Hide() end
+    end
+    if profPanel then
+        profPanel:SetShown(isProf)
+        if isProf then profPanel:Show() else profPanel:Hide() end
+    end
+    local mf = ns.UI.MainFrame
+    local mainLvl = (mf and mf.GetFrameLevel and mf:GetFrameLevel()) or 0
+    if coresPanel and coresPanel.SetFrameLevel then
+        coresPanel:SetFrameLevel(mainLvl + (isCores and 50 or 5))
+    end
+    if lfgPanel and lfgPanel.SetFrameLevel then
+        lfgPanel:SetFrameLevel(mainLvl + (isLfg and 50 or 5))
+    end
+    if profPanel and profPanel.SetFrameLevel then
+        profPanel:SetFrameLevel(mainLvl + (isProf and 50 or 5))
+    end
+    if isCores and coresPanel and coresPanel.Raise then pcall(function() coresPanel:Raise() end) end
+    if isLfg and lfgPanel and lfgPanel.Raise then pcall(function() lfgPanel:Raise() end) end
+    if isProf and profPanel and profPanel.Raise then pcall(function() profPanel:Raise() end) end
+    if ns.UI.UpdateMainTabs then ns.UI:UpdateMainTabs(mode) end
+    if ns.UI.BringMainTabsToFront then ns.UI.BringMainTabsToFront() end
+    if ns.UI.Refresh then ns.UI:Refresh() end
+end
 
-MainFrame:HookScript("OnShow", function() ns.UI:Refresh() end)
+MainFrame:HookScript("OnShow", function()
+    if ns.UI.SetMainPanel and ns.UI.ActivePanel then
+        ns.UI:SetMainPanel(ns.UI.ActivePanel)
+    elseif ns.UI.Refresh then
+        ns.UI:Refresh()
+    end
+end)
 MainFrame:HookScript("OnSizeChanged", function() ns.UI:Refresh() end)
 
 ns.Locale:RegisterCallback(function() ns.UI:RefreshCoreList() end)

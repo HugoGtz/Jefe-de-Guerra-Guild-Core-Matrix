@@ -1,5 +1,6 @@
 local _, ns = ...
 local MainFrame = ns.UI.MainFrame
+local Theme = ns.Theme
 
 local RADIUS = 5
 
@@ -30,6 +31,14 @@ if MinimapBtn.SetFixedFrameLevel then MinimapBtn:SetFixedFrameLevel(true) end
 MinimapBtn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 MinimapBtn:RegisterForDrag("LeftButton")
 MinimapBtn:RegisterForClicks("AnyUp")
+
+-- Subtle hover glow ring
+local hoverGlow = MinimapBtn:CreateTexture(nil, "BACKGROUND")
+hoverGlow:SetSize(34, 34)
+hoverGlow:SetPoint("CENTER", 0, 0)
+hoverGlow:SetTexture(Theme.TEX_WHITE)
+hoverGlow:SetVertexColor(0.65, 0.10, 0.10, 0.55)  -- brand red at reduced alpha
+hoverGlow:Hide()
 
 local icon = MinimapBtn:CreateTexture(nil, "BACKGROUND")
 icon:SetSize(22, 22)
@@ -120,11 +129,25 @@ MinimapBtn:SetScript("OnClick", function(self)
 end)
 
 MinimapBtn:SetScript("OnEnter", function(self)
+    hoverGlow:Show()
+    icon:SetAlpha(1.0)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:SetText(ns.L.TOOLTIP_TITLE)
+    -- Show version if available
+    local ver = ns.ADDON_VERSION or (ns.addonVersion) or nil
+    if not ver and _G.GCM_Settings and _G.GCM_Settings.addonVersion then
+        ver = _G.GCM_Settings.addonVersion
+    end
+    if ver then
+        GameTooltip:AddLine("v" .. tostring(ver), 0.65, 0.65, 0.70, true)
+    end
+    GameTooltip:AddLine(ns.L.BTN_SYNC .. ": /gcm", 0.55, 0.55, 0.60, true)
     GameTooltip:Show()
 end)
-MinimapBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+MinimapBtn:SetScript("OnLeave", function()
+    hoverGlow:Hide()
+    GameTooltip:Hide()
+end)
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")

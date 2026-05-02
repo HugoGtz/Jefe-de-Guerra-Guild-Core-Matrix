@@ -97,6 +97,11 @@ function ns.Specs:Set(name, specId, opts)
         ns.Comms:Broadcast("SPEC_SET", payload)
     end
     if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
+    if ns.PublicNote and ns.PublicNote.IsManaged and ns.PublicNote:IsManaged() and name and me then
+        if Ambiguate(name, "none") == Ambiguate(me, "none") then
+            ns.PublicNote:Reapply(true)
+        end
+    end
     return true
 end
 

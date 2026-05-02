@@ -1,42 +1,39 @@
 # GuildCoreMatrix — Agent Brief
 
-WoW addon for **TBC Anniversary (2.5.5, Interface 20505)** that manages 10-man
-(Karazhan) and 25-man (Gruul / Magtheridon) raid cores by parsing guild
-Officer / Public Notes.
+WoW addon for **TBC Anniversary** (Interface from `GuildCoreMatrix.toc`) that manages raid **cores** and **bench** via **`[C#]`** and **`[B]`** tags in **guild officer notes**. **`Scanner.lua`** reads **officer notes only** for core parsing; public notes may appear in UI tooltips.
 
 ## Stack
 
 - Lua 5.1 / WoW Retail-based engine on Anniversary client.
 - Private namespace pattern: `local addonName, ns = ...`.
 - UI: `BackdropTemplate` mixin, no XML.
-- SavedVariables: `GCM_Settings` (account), `GCM_Cache` (per-character).
+- SavedVariables: `GCM_Settings`, `GCM_Sync` (account), `GCM_Cache` (per-character).
 
 ## Note schema
 
-`[<Type><Id>[:<Role>], ...]` inside Officer or Public Notes.
+Bracket segments **`[ ... ]`**, comma-separated entries inside one bracket.
 
-| Type | Meaning              |
-| ---- | -------------------- |
-| `k`  | Karazhan 10m core    |
-| `K`  | Karazhan 25m core    |
-| `G`  | Gruul / Mag 25m core |
+| Prefix | Meaning |
+| ------ | ------- |
+| **`C`** + numeric id | Core slot (optional `:T`/`:H`/`:D`, short label, `:ML`, `*` lead marker — see `Modules/Notes.lua`) |
+| **`B`** | Bench pool |
 
-Roles: `T`, `H`, `D`. Officer Note hard limit: **31 chars**.
+Officer note hard limit: **31 chars**.
 
 ## Layout
 
 ```
-Core.lua              Event Dispatcher
+Core.lua              Event dispatcher (after modules load)
 GuildCoreMatrix.toc   Load order + SavedVariables
 Modules/
-  Database.lua        SavedVariables + default schedules
-  Scanner.lua         Note parser (throttled 2s)
-  Calendar.lua        Blizzard_Calendar integration
-  UI_Elements.lua     Class color / icon helpers
-  UI_Main.lua         Main frame + slash /gcm
-  UI_Tabs.lua         Tabbed views (10m / 25m / settings)
-  UI_Minimap.lua      Draggable minimap button
-Media/logo.tga
+  Scanner.lua         Guild roster scan; parses officerNote → cores
+  Notes.lua           Segment parse / compose; note length enforcement
+  Database.lua        SavedVariables + migrations
+  Comms.lua           Guild addon channel
+  Schedule.lua Signups.lua Specs.lua Roles.lua PublicNote.lua LFG.lua …
+  UI_Main.lua         Main frame + slash /gcm /gcmlang
+  UI_Minimap.lua      Minimap button
+Media/logo
 install.sh            rsync into local WoW client
 ```
 

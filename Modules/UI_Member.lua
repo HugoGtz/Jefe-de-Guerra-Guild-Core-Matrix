@@ -1,15 +1,15 @@
 local addonName, ns = ...
 ns.UI = ns.UI or {}
 
+local Theme = ns.Theme
+
 local UI = {
     SIZE = { ROW_HEIGHT = 22, DOT = 6 },
-    FONT = { ROW = "GameFontHighlight", SUB = "GameFontDisableSmall" },
     COLOR = {
-        ROW_HOVER = { 1.0, 1.0, 1.0, 0.06 },
-        TEXT_DIM = { 0.65, 0.65, 0.65, 1.0 },
-        CONFLICT = { 1.0, 0.3, 0.3, 1.0 },
-        LEAD = { 1.0, 0.82, 0.0, 1.0 },
-        WHITE_TEX = "Interface\\Buttons\\WHITE8X8",
+        -- File-specific colors only
+        TEXT_DIM  = { 0.62, 0.62, 0.65, 1.0 },
+        CONFLICT  = { 1.0, 0.3, 0.3, 1.0 },
+        LEAD      = { 1.0, 0.82, 0.0, 1.0 },
     },
 }
 
@@ -194,6 +194,16 @@ local function BuildSpecSubmenu(name, class)
     return out
 end
 
+local function BuildDeclaredRoleSubmenu(name)
+    local L = ns.L
+    return {
+        { text = L.MENU_DECLARED_ROLE_TANK, notCheckable = true, func = function() ns.Roles:Set(name, "T", { broadcast = true }) end },
+        { text = L.MENU_DECLARED_ROLE_HEAL, notCheckable = true, func = function() ns.Roles:Set(name, "H", { broadcast = true }) end },
+        { text = L.MENU_DECLARED_ROLE_DPS,  notCheckable = true, func = function() ns.Roles:Set(name, "D", { broadcast = true }) end },
+        { text = L.MENU_DECLARED_ROLE_CLEAR, notCheckable = true, func = function() ns.Roles:Set(name, nil, { broadcast = true }) end },
+    }
+end
+
 function ns.UI:ShowMemberMenu(member, anchorFrame, context)
     local L = ns.L
     local name = member.name
@@ -226,6 +236,30 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
             notCheckable = true,
             hasArrow = true,
             menuList = BuildSpecSubmenu(name, member.class),
+        }
+    end
+
+    if not quick and ns.Roles and (ns.Notes:CanEditUI() or isSelf) then
+        entries[#entries + 1] = {
+            text = L.MENU_SET_DECLARED_ROLE,
+            notCheckable = true,
+            hasArrow = true,
+            menuList = BuildDeclaredRoleSubmenu(name),
+        }
+    end
+
+    if not quick and isSelf and ns.PublicNote then
+        local isManaged = ns.PublicNote:IsManaged()
+        entries[#entries + 1] = {
+            text = isManaged and L.MENU_PUBNOTE_RESTORE or L.MENU_PUBNOTE_PUSH,
+            notCheckable = true,
+            func = function()
+                if isManaged then
+                    ns.PublicNote:Restore(false)
+                else
+                    ns.PublicNote:Push()
+                end
+            end,
         }
     end
 
@@ -294,46 +328,61 @@ local MemberRowMixin = {}
 function MemberRowMixin:Build()
     self:SetHeight(UI.SIZE.ROW_HEIGHT)
 
+    -- alternating stripe (toggled per row by SetData based on index parity)
+    self.stripe = self:CreateTexture(nil, "BACKGROUND")
+    self.stripe:SetDrawLayer("BACKGROUND", -6)
+    self.stripe:SetAllPoints()
+    self.stripe:SetTexture(Theme.TEX_WHITE)
+    self.stripe:SetVertexColor(unpack(Theme.ROW_STRIPE))
+    self.stripe:Hide()
+
+    self.selfGlow = self:CreateTexture(nil, "BACKGROUND")
+    self.selfGlow:SetDrawLayer("BACKGROUND", -4)
+    self.selfGlow:SetAllPoints()
+    self.selfGlow:SetTexture(Theme.TEX_WHITE)
+    self.selfGlow:SetVertexColor(0.22, 0.52, 0.34, 0.16)
+    self.selfGlow:Hide()
+
     self.bg = self:CreateTexture(nil, "BACKGROUND")
     self.bg:SetAllPoints()
-    self.bg:SetTexture(UI.COLOR.WHITE_TEX)
-    self.bg:SetVertexColor(unpack(UI.COLOR.ROW_HOVER))
+    self.bg:SetTexture(Theme.TEX_WHITE)
+    self.bg:SetVertexColor(unpack(Theme.ROW_HOVER))
     self.bg:Hide()
 
     self.dot = self:CreateTexture(nil, "OVERLAY")
-    self.dot:SetTexture(UI.COLOR.WHITE_TEX)
+    self.dot:SetTexture(Theme.TEX_WHITE)
     self.dot:SetSize(UI.SIZE.DOT, UI.SIZE.DOT)
     self.dot:SetPoint("LEFT", 4, 0)
 
-    self.roleIcon = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
+    self.roleIcon = self:CreateFontString(nil, "OVERLAY", Theme.FONT_ROW)
     self.roleIcon:SetPoint("LEFT", self.dot, "RIGHT", 4, 0)
     self.roleIcon:SetWidth(16)
 
-    self.classIcon = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
+    self.classIcon = self:CreateFontString(nil, "OVERLAY", Theme.FONT_ROW)
     self.classIcon:SetPoint("LEFT", self.roleIcon, "RIGHT", 2, 0)
     self.classIcon:SetWidth(16)
 
-    self.conflict = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
+    self.conflict = self:CreateFontString(nil, "OVERLAY", Theme.FONT_ROW)
     self.conflict:SetPoint("LEFT", self.classIcon, "RIGHT", 2, 0)
     self.conflict:SetTextColor(unpack(UI.COLOR.CONFLICT))
     self.conflict:SetWidth(12)
 
-    self.leadIcon = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
+    self.leadIcon = self:CreateFontString(nil, "OVERLAY", Theme.FONT_ROW)
     self.leadIcon:SetPoint("LEFT", self.conflict, "RIGHT", 0, 0)
     self.leadIcon:SetTextColor(unpack(UI.COLOR.LEAD))
     self.leadIcon:SetWidth(16)
 
-    self.addonBadge = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
+    self.addonBadge = self:CreateFontString(nil, "OVERLAY", Theme.FONT_ROW)
     self.addonBadge:SetPoint("LEFT", self.leadIcon, "RIGHT", 2, 0)
     self.addonBadge:SetWidth(16)
 
-    self.nameText = self:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
+    self.nameText = self:CreateFontString(nil, "OVERLAY", Theme.FONT_ROW)
     self.nameText:SetPoint("LEFT", self.addonBadge, "RIGHT", 2, 0)
     self.nameText:SetPoint("RIGHT", -56, 0)
     self.nameText:SetJustifyH("LEFT")
     self.nameText:SetWordWrap(false)
 
-    self.roleLabel = self:CreateFontString(nil, "OVERLAY", UI.FONT.SUB)
+    self.roleLabel = self:CreateFontString(nil, "OVERLAY", Theme.FONT_SMALL)
     self.roleLabel:SetPoint("RIGHT", -6, 0)
     self.roleLabel:SetTextColor(unpack(UI.COLOR.TEXT_DIM))
 
@@ -361,6 +410,10 @@ function MemberRowMixin:ShowTooltip()
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     local r, g, b = ns.UI:GetClassColor(m.class)
     GameTooltip:SetText(m.name, r, g, b)
+    local selfName = UnitName("player")
+    if selfName and Ambiguate(m.name, "none") == Ambiguate(selfName, "none") then
+        GameTooltip:AddLine(ns.L.SELF_ROW_YOU, 0.35, 0.92, 0.55)
+    end
     if m.level and m.level > 0 then
         GameTooltip:AddLine(string.format(ns.L.LEVEL_CLASS, m.level, m.class or "?"), 1, 1, 1)
     end
@@ -375,6 +428,13 @@ function MemberRowMixin:ShowTooltip()
         local meta = ns.Specs:GetSpecMeta(m.class, specId)
         if meta then
             GameTooltip:AddLine(string.format("%s: %s", ns.L.SPEC_LABEL, meta.full), 0.85, 0.85, 1.0)
+        end
+    end
+    if ns.Roles then
+        local dr = ns.Roles:Get(m.name)
+        if dr then
+            local drLabel = (dr == "T" and ns.L.ROLE_TANK) or (dr == "H" and ns.L.ROLE_HEAL) or ns.L.ROLE_DPS
+            GameTooltip:AddLine(string.format("%s: %s", ns.L.DECLARED_ROLE_LABEL, drLabel), 0.7, 0.85, 1.0)
         end
     end
     if m.lead then
@@ -393,9 +453,19 @@ function MemberRowMixin:ShowTooltip()
     GameTooltip:Show()
 end
 
-function MemberRowMixin:SetData(member, context)
+function MemberRowMixin:SetData(member, context, rowIndex)
     self.member = member
     self.context = context
+
+    local meName = UnitName("player")
+    local isSelf = meName and Ambiguate(member.name, "none") == Ambiguate(meName, "none")
+    self.selfGlow:SetShown(isSelf)
+
+    -- Zebra striping: odd rows get a very faint background tint
+    if self.stripe then
+        local showStripe = (rowIndex ~= nil) and (rowIndex % 2 == 1) and (not isSelf)
+        self.stripe:SetShown(showStripe)
+    end
 
     local dr, dg, db = ns.UI:GetOnlineColor(member.online)
     self.dot:SetVertexColor(dr, dg, db, 1)
@@ -414,10 +484,16 @@ function MemberRowMixin:SetData(member, context)
     self.nameText:SetText(member.name)
     self.nameText:SetTextColor(r, g, b)
 
+    local noteRole = member.role
+    local displayRole = noteRole
+    if not displayRole and ns.Roles then
+        displayRole = ns.Roles:GetEffectiveRole(member.name, member.class)
+    end
+
     local roleStr = ""
-    if member.role == "T" then roleStr = ns.L.ROLE_TANK
-    elseif member.role == "H" then roleStr = ns.L.ROLE_HEAL
-    elseif member.role == "D" then roleStr = ns.L.ROLE_DPS end
+    if displayRole == "T" then roleStr = ns.L.ROLE_TANK
+    elseif displayRole == "H" then roleStr = ns.L.ROLE_HEAL
+    elseif displayRole == "D" then roleStr = ns.L.ROLE_DPS end
 
     local specStr = ""
     if ns.Specs and member.class then

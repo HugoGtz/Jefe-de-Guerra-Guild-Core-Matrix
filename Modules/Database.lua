@@ -185,6 +185,7 @@ function ns.Database:Initialize()
         end
     end
     GCM_Settings.collapsed = GCM_Settings.collapsed or {}
+    GCM_Settings.publicNote = GCM_Settings.publicNote or {}
 
     GCM_Cache = GCM_Cache or {}
     ns.Cache = GCM_Cache
@@ -195,6 +196,8 @@ function ns.Database:Initialize()
     GCM_Sync.specs = GCM_Sync.specs or {}
     GCM_Sync.lfg = GCM_Sync.lfg or {}
     GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}
+    GCM_Sync.declaredRoles = GCM_Sync.declaredRoles or {}
+    GCM_Sync.professions = GCM_Sync.professions or {}
     GCM_Sync.meta = GCM_Sync.meta or { version = 1 }
     ns.Sync = GCM_Sync
 

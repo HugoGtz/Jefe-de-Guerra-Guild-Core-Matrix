@@ -38,18 +38,33 @@ local function NewChunkId()
     return string.format("%x", math.random(0, 0xffffff))
 end
 
-function ns.Comms:SendChunked(msgType, payload, channel)
+function ns.Comms:SendChunked(msgType, payload, channel, whisperTarget)
+    payload = payload or ""
+    channel = channel or "GUILD"
     local id = NewChunkId()
     local total = math.max(1, math.ceil(#payload / CHUNK_SIZE))
     for i = 1, total do
         local chunk = payload:sub((i - 1) * CHUNK_SIZE + 1, i * CHUNK_SIZE)
         local body = string.format("%d|CHUNK|%s|%d|%d|%s|%s", PROTO_VER, id, i, total, msgType, chunk)
-        SendMsg(PREFIX, body, channel)
+        if channel == "WHISPER" and whisperTarget and whisperTarget ~= "" then
+            if C_ChatInfo and C_ChatInfo.SendAddonMessage then
+                C_ChatInfo.SendAddonMessage(PREFIX, body, "WHISPER", whisperTarget)
+            elseif _G.SendAddonMessage then
+                SendAddonMessage(PREFIX, body, "WHISPER", whisperTarget)
+            end
+        else
+            SendMsg(PREFIX, body, channel)
+        end
     end
     return true
 end
 
-function ns.Comms:Send(msgType, payload, channel, throttleKey)
+function ns.Comms:SendChunkedWhisper(msgType, payload, target)
+    if not target or target == "" then return false end
+    return self:SendChunked(msgType, payload, "WHISPER", target)
+end
+
+function ns.Comms:Send(msgType, payload, channel, throttleKey, skipThrottle)
     payload = payload or ""
     channel = channel or "GUILD"
     throttleKey = throttleKey or msgType
@@ -57,9 +72,11 @@ function ns.Comms:Send(msgType, payload, channel, throttleKey)
     if channel == "GUILD" and not IsInGuild() then return false end
 
     local now = GetTime()
-    local last = self.lastSent[throttleKey] or 0
-    if (now - last) < DEFAULT_THROTTLE then return false end
-    self.lastSent[throttleKey] = now
+    if not skipThrottle then
+        local last = self.lastSent[throttleKey] or 0
+        if (now - last) < DEFAULT_THROTTLE then return false end
+        self.lastSent[throttleKey] = now
+    end
 
     local body = string.format("%d|%s|%s", PROTO_VER, msgType, payload)
     if #body > MAX_BODY then
@@ -69,13 +86,13 @@ function ns.Comms:Send(msgType, payload, channel, throttleKey)
     return true
 end
 
-function ns.Comms:Broadcast(msgType, payload)
-    return self:Send(msgType, payload, "GUILD", msgType)
+function ns.Comms:Broadcast(msgType, payload, skipThrottle)
+    return self:Send(msgType, payload, "GUILD", msgType, skipThrottle == true)
 end
 
 function ns.Comms:Whisper(msgType, payload, target)
     if not target or target == "" then return false end
-    return self:Send(msgType, payload, "WHISPER", msgType .. ":" .. target)
+    return self:Send(msgType, payload, "WHISPER", msgType .. ":" .. target, false)
 end
 
 local function HandleChunk(self, rest, sender, channel)

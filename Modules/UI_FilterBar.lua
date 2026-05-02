@@ -6,30 +6,30 @@ local CLASS_ORDER = {
     "SHAMAN", "MAGE", "WARLOCK", "DRUID",
 }
 
+local Theme = ns.Theme
+
 local UI = {
     SIZE = {
-        BAR_HEIGHT = 88,
+        BAR_HEIGHT = 90,
         ROW1_TOP = -8,
-        ROW2_TOP = -32,
-        ROW3_TOP = -58,
-        BTN_HEIGHT = 22,
-        CLASS_BTN = 26,
-        ROLE_CLASS_GAP = 12,
+        ROW2_TOP = -34,
+        ROW3_TOP = -60,
+        BTN_HEIGHT = 20,
+        CLASS_BTN = 24,
+        ROLE_CLASS_GAP = 10,
     },
     FONT = { ROW = "GameFontHighlightSmall" },
     COLOR = {
-        BAR_BG = { 0.06, 0.06, 0.09, 0.94 },
-        BTN_OFF = { 0.13, 0.13, 0.17, 1.0 },
-        BTN_ON = { 0.22, 0.58, 0.82, 1.0 },
-        BTN_HOVER = { 0.18, 0.18, 0.24, 1.0 },
-        BTN_TEXT = { 0.95, 0.95, 0.98, 1 },
-        BTN_CLEAR_OFF = { 0.22, 0.12, 0.12, 1.0 },
-        BTN_CLEAR_ON = { 0.42, 0.18, 0.18, 1.0 },
-        WHITE_TEX = "Interface\\Buttons\\WHITE8X8",
-        SEP = { 0.28, 0.28, 0.36, 0.45 },
-        EDGE = { 0.32, 0.32, 0.4, 1 },
+        -- File-specific colors only
+        BAR_BG        = { 0.06, 0.05, 0.06, 0.97 },
+        BTN_CLEAR_OFF = { 0.22, 0.10, 0.10, 1.0 },
+        BTN_CLEAR_ON  = { 0.45, 0.16, 0.16, 1.0 },
+        SEARCH_HINT   = { 0.42, 0.42, 0.50, 1 },
     },
 }
+
+-- Flag to suppress OnTextChanged callbacks when we set placeholder text ourselves
+local searchIsPlaceholder = false
 
 ns.UI.Filter = {
     search = "",
@@ -51,35 +51,62 @@ end
 local MainFrame = ns.UI.MainFrame
 
 local Bar = CreateFrame("Frame", nil, MainFrame, "BackdropTemplate")
-Bar:SetPoint("TOPLEFT", 10, -38)
-Bar:SetPoint("TOPRIGHT", -10, -38)
+Bar:SetPoint("TOPLEFT", ns.UI.SelfBar, "BOTTOMLEFT", 6, -4)
+Bar:SetPoint("TOPRIGHT", ns.UI.SelfBar, "BOTTOMRIGHT", -6, -4)
 Bar:SetHeight(UI.SIZE.BAR_HEIGHT)
 Bar:SetBackdrop({
-    bgFile = UI.COLOR.WHITE_TEX,
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    edgeSize = 12,
+    bgFile = Theme.TEX_WHITE,
+    edgeFile = Theme.TEX_BORDER,
+    edgeSize = 10,
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
 })
 Bar:SetBackdropColor(unpack(UI.COLOR.BAR_BG))
-Bar:SetBackdropBorderColor(unpack(UI.COLOR.EDGE))
+Bar:SetBackdropBorderColor(unpack(Theme.BORDER_MAIN))
 
 ns.UI.FilterBar = Bar
 
 local Sep = Bar:CreateTexture(nil, "ARTWORK")
-Sep:SetTexture(UI.COLOR.WHITE_TEX)
-Sep:SetVertexColor(unpack(UI.COLOR.SEP))
+Sep:SetTexture(Theme.TEX_WHITE)
+Sep:SetVertexColor(unpack(Theme.SEP))
 Sep:SetHeight(1)
 
 local SearchBox = CreateFrame("EditBox", nil, Bar, "InputBoxTemplate")
-SearchBox:SetHeight(UI.SIZE.BTN_HEIGHT)
+SearchBox:SetHeight(UI.SIZE.BTN_HEIGHT + 2)
 SearchBox:SetAutoFocus(false)
 SearchBox:SetMaxLetters(32)
+
+local function SearchApplyPlaceholder()
+    local hint = (ns.L and ns.L.FILTER_PLACEHOLDER) or "Search by name..."
+    searchIsPlaceholder = true
+    SearchBox:SetText(hint)
+    SearchBox:SetTextColor(unpack(UI.COLOR.SEARCH_HINT))  -- file-specific hint color
+    ns.UI.Filter.search = ""
+end
+
+local function SearchClearPlaceholder()
+    if searchIsPlaceholder then
+        searchIsPlaceholder = false
+        SearchBox:SetText("")
+        SearchBox:SetTextColor(0.95, 0.95, 0.98, 1)
+    end
+end
+
+SearchBox:SetScript("OnEditFocusGained", function(self)
+    SearchClearPlaceholder()
+    self:SetTextColor(0.95, 0.95, 0.98, 1)
+end)
+SearchBox:SetScript("OnEditFocusLost", function(self)
+    if (self:GetText() or "") == "" then
+        SearchApplyPlaceholder()
+    end
+end)
 SearchBox:SetScript("OnTextChanged", function(self)
+    if searchIsPlaceholder then return end
     ns.UI.Filter.search = (self:GetText() or ""):lower()
     if ns.UI.Refresh then ns.UI:Refresh() end
 end)
 SearchBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-SearchBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+SearchBox:SetScript("OnEnterPressed",  function(self) self:ClearFocus() end)
 
 ns.UI.SearchBox = SearchBox
 
@@ -95,7 +122,7 @@ local function AttachToggleHover(btn)
             on = F[self.key] == true
         end
         if not on then
-            self.bg:SetVertexColor(unpack(UI.COLOR.BTN_HOVER))
+            self.bg:SetVertexColor(unpack(Theme.BTN_HOVER))
         end
         if self.OnTipEnter then self:OnTipEnter() end
     end)
@@ -111,12 +138,12 @@ local function MakeToggle(parent, key, valueOn)
 
     btn.bg = btn:CreateTexture(nil, "BACKGROUND")
     btn.bg:SetAllPoints()
-    btn.bg:SetTexture(UI.COLOR.WHITE_TEX)
-    btn.bg:SetVertexColor(unpack(UI.COLOR.BTN_OFF))
+    btn.bg:SetTexture(Theme.TEX_WHITE)
+    btn.bg:SetVertexColor(unpack(Theme.BTN_OFF))
 
     btn.text = btn:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
     btn.text:SetPoint("CENTER", 0, -0.5)
-    btn.text:SetTextColor(unpack(UI.COLOR.BTN_TEXT))
+    btn.text:SetTextColor(unpack(Theme.BTN_TEXT))
 
     btn.key = key
     btn.valueOn = valueOn
@@ -145,7 +172,7 @@ local btnMine = MakeToggle(Bar, "onlyMine")
 btnMine:SetScript("OnEnter", function(self)
     local F = ns.UI.Filter
     local on = ResolveOnlyMineDefault()
-    if not on then self.bg:SetVertexColor(unpack(UI.COLOR.BTN_HOVER)) end
+    if not on then self.bg:SetVertexColor(unpack(Theme.BTN_HOVER)) end
 end)
 btnMine:SetScript("OnLeave", function()
     ns.UI.FilterBar:UpdateVisualState()
@@ -165,8 +192,8 @@ local function MakeRoleFilterToggle(roleCode, tipKey)
 
     btn.bg = btn:CreateTexture(nil, "BACKGROUND")
     btn.bg:SetAllPoints()
-    btn.bg:SetTexture(UI.COLOR.WHITE_TEX)
-    btn.bg:SetVertexColor(unpack(UI.COLOR.BTN_OFF))
+    btn.bg:SetTexture(Theme.TEX_WHITE)
+    btn.bg:SetVertexColor(unpack(Theme.BTN_OFF))
 
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
     btn.icon:SetSize(20, 20)
@@ -198,7 +225,7 @@ local function MakeRoleFilterToggle(roleCode, tipKey)
     btn:SetScript("OnEnter", function(self)
         local on = ns.UI.Filter.role == roleCode
         if not on then
-            self.bg:SetVertexColor(unpack(UI.COLOR.BTN_HOVER))
+            self.bg:SetVertexColor(unpack(Theme.BTN_HOVER))
         end
         self:OnTipEnter()
     end)
@@ -230,8 +257,8 @@ local function MakeClassToggle(classFile)
 
     btn.bg = btn:CreateTexture(nil, "BACKGROUND")
     btn.bg:SetAllPoints()
-    btn.bg:SetTexture(UI.COLOR.WHITE_TEX)
-    btn.bg:SetVertexColor(unpack(UI.COLOR.BTN_OFF))
+    btn.bg:SetTexture(Theme.TEX_WHITE)
+    btn.bg:SetVertexColor(unpack(Theme.BTN_OFF))
 
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
     btn.icon:SetSize(20, 20)
@@ -261,7 +288,7 @@ local function MakeClassToggle(classFile)
     btn:SetScript("OnEnter", function(self)
         local on = ns.UI.Filter.classes[self.classFile]
         if not on then
-            self.bg:SetVertexColor(unpack(UI.COLOR.BTN_HOVER))
+            self.bg:SetVertexColor(unpack(Theme.BTN_HOVER))
         end
         self:OnTipEnter()
     end)
@@ -282,11 +309,11 @@ local btnClear = CreateFrame("Button", nil, Bar)
 btnClear:SetHeight(UI.SIZE.BTN_HEIGHT)
 btnClear.bg = btnClear:CreateTexture(nil, "BACKGROUND")
 btnClear.bg:SetAllPoints()
-btnClear.bg:SetTexture(UI.COLOR.WHITE_TEX)
+btnClear.bg:SetTexture(Theme.TEX_WHITE)
 btnClear.bg:SetVertexColor(unpack(UI.COLOR.BTN_CLEAR_OFF))
 btnClear.text = btnClear:CreateFontString(nil, "OVERLAY", UI.FONT.ROW)
 btnClear.text:SetPoint("CENTER", 0, -0.5)
-btnClear.text:SetTextColor(unpack(UI.COLOR.BTN_TEXT))
+btnClear.text:SetTextColor(unpack(Theme.BTN_TEXT))
 btnClear:SetScript("OnEnter", function(self)
     self.bg:SetVertexColor(unpack(UI.COLOR.BTN_CLEAR_ON))
 end)
@@ -306,7 +333,7 @@ btnClear:SetScript("OnClick", function()
     for k in pairs(ns.UI.Filter.lfgPick) do
         ns.UI.Filter.lfgPick[k] = nil
     end
-    SearchBox:SetText("")
+    SearchApplyPlaceholder()
     ns.UI.FilterBar:UpdateVisualState()
     if ns.UI.Refresh then ns.UI:Refresh() end
 end)
@@ -358,10 +385,11 @@ local function LayoutTogglesFull()
 end
 
 local function FitToggles()
-    local pad = 12
+    local pad = 14
     for _, b in ipairs({ btnOnline, btnMine, btnUnassigned, btnNoRole, btnClear }) do
-        local w = b.text:GetStringWidth() + pad
-        if w < 32 then w = 32 end
+        local tw = b.text:GetStringWidth()
+        local w = tw > 0 and (tw + pad) or 36
+        if w < 36 then w = 36 end
         b:SetWidth(w)
     end
 end
@@ -380,10 +408,11 @@ local function LayoutTogglesLFG()
 end
 
 local function FitLFGBar()
-    local pad = 12
+    local pad = 14
     for _, b in ipairs({ btnOnline, btnClear }) do
-        local w = b.text:GetStringWidth() + pad
-        if w < 32 then w = 32 end
+        local tw = b.text:GetStringWidth()
+        local w = tw > 0 and (tw + pad) or 36
+        if w < 36 then w = 36 end
         b:SetWidth(w)
     end
 end
@@ -398,20 +427,25 @@ local function ApplyBarLayout()
     end
 end
 
-function ns.UI.FilterBar:SetCoreFiltersVisible(show)
-    layoutMode = show and "cores" or "lfg"
-    local vis = show and true or false
-    btnMine:SetShown(vis)
-    btnUnassigned:SetShown(vis)
-    btnNoRole:SetShown(vis)
-    btnTanks:SetShown(vis)
-    btnHealers:SetShown(vis)
-    btnDps:SetShown(vis)
-    Sep:SetShown(vis)
-    for _, b in ipairs(classButtons) do
-        b:SetShown(vis)
+function ns.UI.FilterBar:SetCoreFiltersVisible(mode)
+    if mode == true then
+        mode = "cores"
+    elseif mode == false or mode == nil then
+        mode = "lfg"
     end
-    Bar:SetHeight(show and UI.SIZE.BAR_HEIGHT or 52)
+    layoutMode = (mode == "cores") and "cores" or "lfg"
+    local isCores = (layoutMode == "cores")
+    btnMine:SetShown(isCores)
+    btnUnassigned:SetShown(isCores)
+    btnNoRole:SetShown(isCores)
+    btnTanks:SetShown(isCores)
+    btnHealers:SetShown(isCores)
+    btnDps:SetShown(isCores)
+    Sep:SetShown(isCores)
+    for _, b in ipairs(classButtons) do
+        b:SetShown(isCores)
+    end
+    Bar:SetHeight(isCores and UI.SIZE.BAR_HEIGHT or 50)
     ApplyBarLayout()
 end
 
@@ -421,16 +455,16 @@ end)
 
 function ns.UI.FilterBar:UpdateVisualState()
     local F = ns.UI.Filter
-    btnOnline.bg:SetVertexColor(unpack(F.onlyOnline and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
-    btnMine.bg:SetVertexColor(unpack(ResolveOnlyMineDefault() and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
-    btnUnassigned.bg:SetVertexColor(unpack(F.showUnassigned and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
-    btnNoRole.bg:SetVertexColor(unpack(F.noRole and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
-    btnTanks.bg:SetVertexColor(unpack(F.role == "T" and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
-    btnHealers.bg:SetVertexColor(unpack(F.role == "H" and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
-    btnDps.bg:SetVertexColor(unpack(F.role == "D" and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
+    btnOnline.bg:SetVertexColor(unpack(F.onlyOnline and Theme.BTN_ON or Theme.BTN_OFF))
+    btnMine.bg:SetVertexColor(unpack(ResolveOnlyMineDefault() and Theme.BTN_ON or Theme.BTN_OFF))
+    btnUnassigned.bg:SetVertexColor(unpack(F.showUnassigned and Theme.BTN_ON or Theme.BTN_OFF))
+    btnNoRole.bg:SetVertexColor(unpack(F.noRole and Theme.BTN_ON or Theme.BTN_OFF))
+    btnTanks.bg:SetVertexColor(unpack(F.role == "T" and Theme.BTN_ON or Theme.BTN_OFF))
+    btnHealers.bg:SetVertexColor(unpack(F.role == "H" and Theme.BTN_ON or Theme.BTN_OFF))
+    btnDps.bg:SetVertexColor(unpack(F.role == "D" and Theme.BTN_ON or Theme.BTN_OFF))
     for _, btn in ipairs(classButtons) do
         local on = F.classes[btn.classFile]
-        btn.bg:SetVertexColor(unpack(on and UI.COLOR.BTN_ON or UI.COLOR.BTN_OFF))
+        btn.bg:SetVertexColor(unpack(on and Theme.BTN_ON or Theme.BTN_OFF))
     end
 end
 
@@ -443,8 +477,11 @@ function ns.UI.Filter:ShouldShowUnassigned()
 end
 
 ns.Locale:RegisterCallback(function()
-    SearchBox:SetText("")
     if SearchBox.SetTextInsets then SearchBox:SetTextInsets(4, 6, 0, 0) end
+    -- Apply placeholder (locale may have changed the placeholder text)
+    if (ns.UI.Filter.search or "") == "" then
+        SearchApplyPlaceholder()
+    end
     btnOnline.text:SetText(ns.L.FILTER_ONLY_ONLINE)
     btnMine.text:SetText(ns.L.FILTER_MINE)
     btnUnassigned.text:SetText(ns.L.FILTER_UNASSIGNED)
@@ -465,8 +502,12 @@ function ns.UI.Filter:Matches(member)
         if not member.name:lower():find(self.search, 1, true) then return false end
     end
     if self.onlyOnline and not member.online then return false end
-    if self.noRole and member.role ~= nil then return false end
-    if self.role and member.role ~= self.role then return false end
+    local effectiveRole = member.role
+    if not effectiveRole and ns.Roles then
+        effectiveRole = ns.Roles:GetEffectiveRole(member.name, member.class)
+    end
+    if self.noRole and effectiveRole ~= nil then return false end
+    if self.role and effectiveRole ~= self.role then return false end
     if next(self.classes) then
         if not member.class or not self.classes[member.class] then return false end
     end
