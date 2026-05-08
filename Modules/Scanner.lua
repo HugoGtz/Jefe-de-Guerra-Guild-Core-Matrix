@@ -92,80 +92,103 @@ function ns.Scanner:ParseGuildNotes(opts)
     end
 end
 
+local isScanning = false
+local scanQueue = {}
+
 function ns.Scanner:ParseGuildNotesNow(opts)
     opts = opts or {}
     if not IsInGuild() then return end
+    if isScanning then return end -- Prevent re-entry
 
+    isScanning = true
     ns.Cache = ns.Cache or {}
-    wipe(ns.Cache)
-
+    -- We don't wipe immediately to keep UI stable during async scan
+    -- Instead, we'll use a temporary cache and swap it at the end
+    local tempCache = {}
     local foundCount = 0
     local rosterSize = GetNumGuildMembers()
+    
+    local BUCKET_SIZE = 40 -- Process 40 members per frame
+    local currentIndex = 1
 
-    for i = 1, rosterSize do
-        local name, _, _, level, _, zone, publicNote, officerNote, online, status, classFileName = GetGuildRosterInfo(i)
-
-        if name then
-            local cleanName = Ambiguate(name, "none")
-            local years, months, days, hours = GetGuildRosterLastOnline(i)
-            local combined = officerNote or ""
-            local cores, count = ParseCoresFromNotes(combined)
-            local lfgTags = {}
-            local lfgDetail = ""
-            local lfgUpdatedAt = 0
-            local lfgMode = "LFG"
-            local syncLF = ns.Sync and ns.Sync.lfg and ns.Sync.lfg[cleanName]
-            if syncLF then
-                for _, t in ipairs(syncLF.tags or {}) do
-                    lfgTags[#lfgTags + 1] = t
+    local function ScanTick()
+        local limit = math.min(currentIndex + BUCKET_SIZE - 1, rosterSize)
+        
+        for i = currentIndex, limit do
+            local name, _, _, level, _, zone, publicNote, officerNote, online, status, classFileName = GetGuildRosterInfo(i)
+            if name then
+                local cleanName = Ambiguate(name, "none")
+                local years, months, days, hours = GetGuildRosterLastOnline(i)
+                local combined = officerNote or ""
+                local cores, count = ParseCoresFromNotes(combined)
+                
+                local lfgTags = {}
+                local lfgDetail = ""
+                local lfgUpdatedAt = 0
+                local lfgMode = "LFG"
+                local syncLF = ns.Sync and ns.Sync.lfg and ns.Sync.lfg[cleanName]
+                if syncLF then
+                    for _, t in ipairs(syncLF.tags or {}) do
+                        lfgTags[#lfgTags + 1] = t
+                    end
+                    lfgDetail    = syncLF.detail    or ""
+                    lfgUpdatedAt = syncLF.updatedAt or 0
+                    lfgMode      = syncLF.mode      or "LFG"
                 end
-                lfgDetail    = syncLF.detail    or ""
-                lfgUpdatedAt = syncLF.updatedAt or 0
-                lfgMode      = syncLF.mode      or "LFG"
+
+                tempCache[cleanName] = {
+                    rosterName   = name,
+                    class        = classFileName,
+                    level        = level,
+                    online       = EffectiveGuildOnline(online, years, months, days, hours, status),
+                    zone         = zone,
+                    publicNote   = publicNote,
+                    lastOnline   = { years = years or 0, months = months or 0, days = days or 0, hours = hours or 0 },
+                    cores        = cores,
+                    lfg          = lfgTags,
+                    lfgDetail    = lfgDetail,
+                    lfgUpdatedAt = lfgUpdatedAt,
+                    lfgMode      = lfgMode,
+                }
+
+                if ns.Professions and ns.Professions.PushToCache then
+                    ns.Professions:PushToCache(cleanName, tempCache)
+                end
+
+                foundCount = foundCount + count
+            end
+        end
+
+        if limit < rosterSize then
+            currentIndex = limit + 1
+            C_Timer.After(0.01, ScanTick)
+        else
+            -- Scan Complete
+            ns.Cache = tempCache
+            GCM_Cache = tempCache -- Keep persistent if needed
+            ns.Scanner.lastScanTime = time()
+            
+            local prevFound = ns.Scanner._lastFoundCount
+            ns.Scanner._lastFoundCount = foundCount
+            isScanning = false
+
+            if rosterSize > 0 then
+                local chat = opts.verbose == true or prevFound ~= foundCount
+                if chat then
+                    if foundCount > 0 then
+                        print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.SCAN_SUCCESS, foundCount))
+                    else
+                        print(ns.L.BRAND_YELLOW .. " " .. ns.L.SCAN_NO_MATCHES)
+                    end
+                end
             end
 
-            ns.Cache[cleanName] = {
-                rosterName   = name,
-                class        = classFileName,
-                level        = level,
-                online       = EffectiveGuildOnline(online, years, months, days, hours, status),
-                zone         = zone,
-                publicNote   = publicNote,
-                lastOnline   = { years = years or 0, months = months or 0, days = days or 0, hours = hours or 0 },
-                cores        = cores,
-                lfg          = lfgTags,
-                lfgDetail    = lfgDetail,
-                lfgUpdatedAt = lfgUpdatedAt,
-                lfgMode      = lfgMode,
-            }
-
-            if ns.Professions and ns.Professions.PushToCache then
-                ns.Professions:PushToCache(cleanName)
-            end
-
-            foundCount = foundCount + count
+            ns.Scanner:SyncLootMasterPrefsFromCache()
+            if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
         end
     end
 
-    ns.Scanner.lastScanTime = time()
-
-    local prevFound = ns.Scanner._lastFoundCount
-    ns.Scanner._lastFoundCount = foundCount
-
-    if rosterSize > 0 then
-        local chat = opts.verbose == true or prevFound ~= foundCount
-        if chat then
-            if foundCount > 0 then
-                print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.SCAN_SUCCESS, foundCount))
-            else
-                print(ns.L.BRAND_YELLOW .. " " .. ns.L.SCAN_NO_MATCHES)
-            end
-        end
-    end
-
-    self:SyncLootMasterPrefsFromCache()
-
-    if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
+    ScanTick()
 end
 
 local function CountKeys(t)

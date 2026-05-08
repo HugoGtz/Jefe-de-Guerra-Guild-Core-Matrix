@@ -53,6 +53,19 @@ local function WhisperPlayer(name)
     end
 end
 
+StaticPopupDialogs["GCM_CONFIRM_REMOVE"] = {
+    text = "%s",
+    button1 = ACCEPT or "OK",
+    button2 = CANCEL or "Cancel",
+    OnAccept = function(self, data)
+        ns.Notes:Unassign(data.name, data.typeCode, data.coreId)
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 StaticPopupDialogs["GCM_COPY_NAME"] = {
     text = "%s",
     button2 = OKAY or "OK",
@@ -300,7 +313,17 @@ function ns.UI:ShowMemberMenu(member, anchorFrame, context)
             entries[#entries + 1] = {
                 text = context.typeCode == "B" and L.MENU_REMOVE_FROM_BENCH or string.format(L.MENU_REMOVE_FROM_CORE, context.coreId),
                 notCheckable = true,
-                func = function() ns.Notes:Unassign(name, context.typeCode, context.coreId) end,
+                func = function()
+                    local msg = context.typeCode == "B"
+                        and string.format(L.CONFIRM_REMOVE_BENCH, name)
+                        or  string.format(L.CONFIRM_REMOVE_CORE, name, context.coreId)
+                    StaticPopupDialogs["GCM_CONFIRM_REMOVE"].text = msg
+                    StaticPopup_Show("GCM_CONFIRM_REMOVE", nil, nil, {
+                        name     = name,
+                        typeCode = context.typeCode,
+                        coreId   = context.coreId,
+                    })
+                end,
             }
         end
 
@@ -513,9 +536,33 @@ function MemberRowMixin:SetData(member, context, rowIndex)
     self:Show()
 end
 
-function ns.UI:NewMemberRow(parent)
-    local row = CreateFrame("Button", nil, parent)
-    ApplyMixin(row, MemberRowMixin)
-    row:Build()
+local rowPool = {}
+local activeRows = {}
+
+function ns.UI:GetMemberRow(parent)
+    local row = table.remove(rowPool)
+    if not row then
+        row = CreateFrame("Button", nil, parent)
+        ApplyMixin(row, MemberRowMixin)
+        row:Build()
+    end
+    row:SetParent(parent)
+    activeRows[row] = true
     return row
+end
+
+function ns.UI:ReleaseRow(row)
+    row:Hide()
+    row:ClearAllPoints()
+    row:SetParent(nil)
+    activeRows[row] = nil
+    table.insert(rowPool, row)
+end
+
+function ns.UI:ReleaseAllRows(currentRowsTable)
+    if not currentRowsTable then return end
+    for i = 1, #currentRowsTable do
+        self:ReleaseRow(currentRowsTable[i])
+        currentRowsTable[i] = nil
+    end
 end

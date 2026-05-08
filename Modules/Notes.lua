@@ -215,7 +215,7 @@ local function EntryToString(e)
                 s = s .. ":" .. e.role
             end
         elseif e.role then
-            s = s .. ":" .. e.role
+            s = s .. e.role -- Compressed: B:T -> BT
         end
         if e.lead then
             s = s .. "*"
@@ -228,9 +228,11 @@ local function EntryToString(e)
     local s = string.format("%s%d", e.typeCode, e.coreId)
     if e.displayName and e.displayName ~= "" then
         s = s .. ":" .. e.displayName
-    end
-    if e.role then
-        s = s .. ":" .. e.role
+        if e.role then
+            s = s .. ":" .. e.role
+        end
+    elseif e.role then
+        s = s .. e.role -- Compressed: C1:T -> C1T
     end
     if e.lead then
         s = s .. "*"
@@ -245,7 +247,7 @@ local function SortEntries(entries)
     table.sort(entries, function(a, b)
         local oa, ob = TYPE_ORDER[a.typeCode] or 99, TYPE_ORDER[b.typeCode] or 99
         if oa ~= ob then return oa < ob end
-        return a.coreId < b.coreId
+        return (tonumber(a.coreId) or 0) < (tonumber(b.coreId) or 0)
     end)
 end
 
@@ -293,7 +295,8 @@ function ns.Notes:Compose(originalText, entries)
     local bracket = "[" .. table.concat(parts, ",") .. "]"
 
     if prefix == "" then return bracket end
-    return prefix .. " " .. bracket
+    -- Remove the space between prefix and bracket to save 1 char
+    return prefix .. bracket
 end
 
 function ns.Notes:GetIndexByName(targetName)

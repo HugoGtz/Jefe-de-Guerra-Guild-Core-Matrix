@@ -20,7 +20,6 @@ Modules\RaidFormation.lua
 Modules\Comms.lua
 Modules\Professions.lua
 Modules\Schedule.lua
-Modules\Signups.lua
 Modules\Specs.lua
 Modules\Roles.lua
 Modules\PublicNote.lua

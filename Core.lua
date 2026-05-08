@@ -32,7 +32,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ns.Locale:RunCallbacks()
         if ns.Comms and ns.Comms.Init then ns.Comms:Init() end
         if ns.Schedule and ns.Schedule.Init then ns.Schedule:Init() end
-        if ns.Signups and ns.Signups.Init then ns.Signups:Init() end
         if ns.Specs and ns.Specs.Init then ns.Specs:Init() end
         if ns.Roles and ns.Roles.Init then ns.Roles:Init() end
         if ns.PublicNote and ns.PublicNote.Init then ns.PublicNote:Init() end

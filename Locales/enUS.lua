@@ -43,6 +43,8 @@ ns.Locale:Register("enUS", {
     FILTER_CLASS_TIP = "Click to filter by class. Multiple selections narrow results.",
     FILTER_ROLE_TIP = "Click to filter members by role. Only one role filter active at a time.",
     FILTER_MINE = "Mine",
+    FILTER_MINE_TIP_ON  = "Showing: your core only. Click to show all cores.",
+    FILTER_MINE_TIP_OFF = "Showing: all cores. Click to show only your core.",
     FILTER_UNASSIGNED = "No tag",
 
     MENU_INVITE = "Invite to group",
@@ -52,6 +54,8 @@ ns.Locale:Register("enUS", {
     MENU_CHANGE_ROLE = "Change role",
     MENU_REMOVE_FROM_CORE = "Remove from Core %d",
     MENU_REMOVE_FROM_BENCH = "Remove from bench",
+    CONFIRM_REMOVE_CORE  = "Remove |cffffffff%s|r from Core %d?",
+    CONFIRM_REMOVE_BENCH = "Remove |cffffffff%s|r from bench?",
     MENU_ADD_TO_CORE = "Add to core",
     MENU_ADD_TO_BENCH = "Add to bench pool",
     MENU_NO_ROLE = "Clear role",
@@ -82,6 +86,7 @@ ns.Locale:Register("enUS", {
     NOTE_DIFF = "Wrote: \"%s\" | Server has: \"%s\"",
     NOTE_VERIFIED = "Verified: write for %s persisted on the server.",
 
+    INVITE_DONE_BTN = "Sent: %d",
     INVITE_LOG = "Invited %d member(s) of Core %d.",
     INVITE_NONE = "No online member to invite in Core %d.",
     INVITE_NONE_ALREADY_GROUPED = "Core %d has online members, but none could be invited (you may be solo with everyone already in your party or raid, or only you are online).",
@@ -264,16 +269,6 @@ ns.Locale:Register("enUS", {
     SCHED_NEXT = "Next:",
     SCHED_NONE = "No schedule",
     SCHED_EDIT_BTN = "Edit",
-    SCHED_EDIT_TITLE = "Edit schedule — Core %d",
-    SCHED_EDIT_HINT = "Up to 5 slots per core. Click the day to cycle, hour/minute server time.",
-    SCHED_ADD_SLOT = "Add slot",
     BTN_SAVE = "Save",
     BTN_CANCEL = "Cancel",
-
-    SIGNUP_PROMPT = "Sign up",
-    SIGNUP_TITLE = "Your attendance",
-    SIGNUP_YES = "Going",
-    SIGNUP_MAYBE = "Maybe",
-    SIGNUP_NO = "Can't make it",
-    SIGNUP_CLEAR = "Clear",
 })

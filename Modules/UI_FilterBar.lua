@@ -170,12 +170,15 @@ end
 local btnOnline = MakeToggle(Bar, "onlyOnline")
 local btnMine = MakeToggle(Bar, "onlyMine")
 btnMine:SetScript("OnEnter", function(self)
-    local F = ns.UI.Filter
     local on = ResolveOnlyMineDefault()
     if not on then self.bg:SetVertexColor(unpack(Theme.BTN_HOVER)) end
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText(on and ns.L.FILTER_MINE_TIP_ON or ns.L.FILTER_MINE_TIP_OFF, 1, 1, 1, true)
+    GameTooltip:Show()
 end)
 btnMine:SetScript("OnLeave", function()
     ns.UI.FilterBar:UpdateVisualState()
+    GameTooltip:Hide()
 end)
 btnMine:SetScript("OnClick", function()
     local resolved = ResolveOnlyMineDefault()

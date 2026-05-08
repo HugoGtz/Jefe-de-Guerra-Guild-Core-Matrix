@@ -11,16 +11,15 @@ local UI = {
         CARD_PADDING = 14,
         HEADER_OFFSET_FULL = 100,
         HEADER_OFFSET_COMPACT = 70,
+        HEADER_OFFSET_WITH_EDITOR = 158,
         TITLE_Y = -14,
         META_Y = -44,
         SCHED_Y = -72,
         INVITE_BTN_W = 84,
         EDIT_BTN_W = 60,
-        SIGNUP_BTN_W = 84,
         TITLE_LEADER_MAX_W = 130,
         COMP_MAX_W = 110,
         WARNING_MAX_W = 140,
-        SIGNUP_COUNT_W = 80,
     },
     FONT = {
         HEADER = "GameFontNormalLarge",
@@ -106,6 +105,198 @@ local function GetWarningLevel(typeCode, members, t, h)
     return nil
 end
 
+local PILL_W, PILL_H   = 34, 20
+local SPIN_BTN_W       = 18
+local SPIN_VAL_W       = 24
+local EDITOR_ROW_GAP   =  6
+local EDITOR_TOP_Y     = -96
+
+local function MakeSpinner(parent, minVal, maxVal, step)
+    step = step or 1
+    local f = CreateFrame("Frame", nil, parent)
+    f:SetHeight(PILL_H)
+    f:SetWidth(SPIN_BTN_W * 2 + SPIN_VAL_W + 4)
+    f._val = minVal
+
+    f.decBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    f.decBtn:SetSize(SPIN_BTN_W, PILL_H)
+    f.decBtn:SetPoint("LEFT", 0, 0)
+    f.decBtn:SetText("-")
+
+    f.label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    f.label:SetSize(SPIN_VAL_W, PILL_H)
+    f.label:SetPoint("LEFT", f.decBtn, "RIGHT", 2, 0)
+    f.label:SetJustifyH("CENTER")
+
+    f.incBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    f.incBtn:SetSize(SPIN_BTN_W, PILL_H)
+    f.incBtn:SetPoint("LEFT", f.label, "RIGHT", 2, 0)
+    f.incBtn:SetText("+")
+
+    local function refresh() f.label:SetText(string.format("%02d", f._val)) end
+
+    f.decBtn:SetScript("OnClick", function()
+        f._val = f._val - step
+        if f._val < minVal then f._val = maxVal end
+        refresh()
+    end)
+    f.incBtn:SetScript("OnClick", function()
+        f._val = f._val + step
+        if f._val > maxVal then f._val = minVal end
+        refresh()
+    end)
+
+    function f:SetValue(v)
+        self._val = math.max(minVal, math.min(maxVal, tonumber(v) or minVal))
+        if step > 1 then
+            self._val = math.floor(self._val / step + 0.5) * step
+            if self._val > maxVal then self._val = minVal end
+        end
+        refresh()
+    end
+    function f:GetValue() return self._val end
+
+    refresh()
+    return f
+end
+
+local function RefreshPill(p)
+    if p.active then
+        p:SetBackdropColor(0.20, 0.42, 0.80, 0.95)
+        p:SetBackdropBorderColor(0.40, 0.65, 1.00, 1.00)
+        p.label:SetTextColor(1, 1, 1, 1)
+    else
+        p:SetBackdropColor(0.10, 0.10, 0.14, 0.70)
+        p:SetBackdropBorderColor(0.32, 0.32, 0.38, 0.80)
+        p.label:SetTextColor(0.55, 0.55, 0.60, 1)
+    end
+end
+
+local function BuildCardEditor(card)
+    local e = CreateFrame("Frame", nil, card)
+    e:SetPoint("TOPLEFT", card, "TOPLEFT", UI.SPACING.INNER + 8, EDITOR_TOP_Y)
+    e:SetPoint("RIGHT", card, "RIGHT", -UI.SIZE.CARD_PADDING, 0)
+    e:SetHeight(PILL_H + EDITOR_ROW_GAP + PILL_H)
+    e:Hide()
+    card.inlineEditor = e
+
+    e.pills = {}
+    for i = 1, 7 do
+        local pill = CreateFrame("Button", nil, e, "BackdropTemplate")
+        pill:SetSize(PILL_W, PILL_H)
+        pill:SetBackdrop({
+            bgFile   = Theme.TEX_WHITE,
+            edgeFile = Theme.TEX_BORDER,
+            edgeSize = 6,
+            insets   = { left = 1, right = 1, top = 1, bottom = 1 },
+        })
+        if i == 1 then
+            pill:SetPoint("TOPLEFT", 0, 0)
+        else
+            pill:SetPoint("TOPLEFT", e.pills[i - 1], "TOPRIGHT", 3, 0)
+        end
+        pill.label = pill:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        pill.label:SetAllPoints()
+        pill.label:SetJustifyH("CENTER")
+        pill.dayIndex = i
+        pill.active   = false
+        pill:SetScript("OnClick", function(p)
+            p.active = not p.active
+            RefreshPill(p)
+        end)
+        RefreshPill(pill)
+        e.pills[i] = pill
+    end
+
+    local timeRow = CreateFrame("Frame", nil, e)
+    timeRow:SetPoint("TOPLEFT", 0, -(PILL_H + EDITOR_ROW_GAP))
+    timeRow:SetPoint("RIGHT", 0, 0)
+    timeRow:SetHeight(PILL_H)
+
+    e.hourSpin = MakeSpinner(timeRow, 0, 23, 1)
+    e.hourSpin:SetPoint("LEFT", 0, 0)
+
+    local colon = timeRow:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    colon:SetText(":")
+    colon:SetPoint("LEFT", e.hourSpin, "RIGHT", 3, 0)
+    colon:SetSize(8, PILL_H)
+
+    e.minSpin = MakeSpinner(timeRow, 0, 55, 5)
+    e.minSpin:SetPoint("LEFT", colon, "RIGHT", 3, 0)
+
+    e.saveBtn = CreateFrame("Button", nil, timeRow, "UIPanelButtonTemplate")
+    e.saveBtn:SetSize(65, PILL_H)
+    e.saveBtn:SetPoint("RIGHT", 0, 0)
+
+    e.cancelBtn = CreateFrame("Button", nil, timeRow, "UIPanelButtonTemplate")
+    e.cancelBtn:SetSize(65, PILL_H)
+    e.cancelBtn:SetPoint("RIGHT", e.saveBtn, "LEFT", -4, 0)
+
+    e.noteBox = CreateFrame("EditBox", nil, timeRow, "InputBoxTemplate")
+    e.noteBox:SetHeight(PILL_H)
+    e.noteBox:SetPoint("LEFT",  e.minSpin,    "RIGHT", 8, 0)
+    e.noteBox:SetPoint("RIGHT", e.cancelBtn,  "LEFT", -6, 0)
+    e.noteBox:SetAutoFocus(false)
+    e.noteBox:SetMaxLetters(60)
+
+    e.saveBtn:SetScript("OnClick", function()
+        if not ns.Notes or not ns.Notes:CanEditUI() then return end
+        local days = {}
+        for _, p in ipairs(e.pills) do
+            if p.active then days[#days + 1] = p.dayIndex end
+        end
+        local coreKey = ns.Schedule:CoreKey(e.typeCode, e.coreId)
+        if #days == 0 then
+            ns.Schedule:Clear(coreKey, true)
+        else
+            ns.Schedule:Set(coreKey, {
+                days   = days,
+                hour   = e.hourSpin:GetValue(),
+                minute = e.minSpin:GetValue(),
+                note   = e.noteBox:GetText(),
+            }, { broadcast = true })
+        end
+        e:Hide()
+        card.editorOpen = false
+        ns.UI:RefreshCoreList()
+    end)
+
+    e.cancelBtn:SetScript("OnClick", function()
+        e:Hide()
+        card.editorOpen = false
+        ns.UI:RefreshCoreList()
+    end)
+end
+
+local function OpenCardEditor(card, typeCode, coreId)
+    local e = card.inlineEditor
+    if not e then return end
+    e.typeCode = typeCode
+    e.coreId   = coreId
+
+    local coreKey  = ns.Schedule:CoreKey(typeCode, coreId)
+    local sched    = ns.Schedule:Get(coreKey)
+    local activeDays = {}
+    if sched and sched.days then
+        for _, d in ipairs(sched.days) do activeDays[d] = true end
+    end
+    for _, p in ipairs(e.pills) do
+        p.label:SetText(ns.UI:DayShort(p.dayIndex))
+        p.active = activeDays[p.dayIndex] == true
+        RefreshPill(p)
+    end
+
+    e.hourSpin:SetValue(sched and sched.hour   or 21)
+    e.minSpin:SetValue( sched and sched.minute or  0)
+    e.noteBox:SetText(  sched and sched.note   or "")
+    e.noteBox:ClearFocus()
+    e.saveBtn:SetText(ns.L.BTN_SAVE)
+    e.cancelBtn:SetText(ns.L.BTN_CANCEL)
+
+    e:Show()
+    card.editorOpen = true
+end
+
 local CoreCardMixin = {}
 
 function CoreCardMixin:Build()
@@ -169,20 +360,9 @@ function CoreCardMixin:Build()
     self.editScheduleBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -UI.SIZE.CARD_PADDING, UI.SIZE.SCHED_Y)
     self.editScheduleBtn:Hide()
 
-    self.signupBtn = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
-    self.signupBtn:SetSize(UI.SIZE.SIGNUP_BTN_W, 18)
-    self.signupBtn:SetPoint("TOPRIGHT", self.editScheduleBtn, "TOPLEFT", -4, 0)
-    self.signupBtn:Hide()
-
-    self.signupCount = self:CreateFontString(nil, "OVERLAY", UI.FONT.SMALL)
-    self.signupCount:SetPoint("RIGHT", self.signupBtn, "LEFT", -8, 0)
-    self.signupCount:SetWidth(UI.SIZE.SIGNUP_COUNT_W)
-    self.signupCount:SetJustifyH("RIGHT")
-    self.signupCount:SetWordWrap(false)
-
     self.scheduleText = self:CreateFontString(nil, "OVERLAY", UI.FONT.SMALL)
     self.scheduleText:SetPoint("TOPLEFT", self.accent, "TOPRIGHT", UI.SPACING.INNER + 2, UI.SIZE.SCHED_Y - 2)
-    self.scheduleText:SetPoint("RIGHT", self.signupCount, "LEFT", -10, 0)
+    self.scheduleText:SetPoint("RIGHT", self.editScheduleBtn, "LEFT", -10, 0)
     self.scheduleText:SetJustifyH("LEFT")
     self.scheduleText:SetWordWrap(false)
     self.scheduleText:SetTextColor(0.85, 0.85, 0.95, 1)
@@ -206,12 +386,15 @@ function CoreCardMixin:Build()
         ns.Database:SetCollapsed(self.collapseKey, not now)
         ns.UI:RefreshCoreList()
     end)
+
+    self.editorOpen = false
+    BuildCardEditor(self)
 end
 
 function CoreCardMixin:GetRow(index)
     local row = self.rows[index]
     if not row then
-        row = ns.UI:NewMemberRow(self.rowsParent)
+        row = ns.UI:GetMemberRow(self.rowsParent)
         if index == 1 then
             row:SetPoint("TOPLEFT", self.rowsParent, "TOPLEFT", 4, 0)
             row:SetPoint("RIGHT", self.rowsParent, "RIGHT", -2, 0)
@@ -226,7 +409,10 @@ end
 
 function CoreCardMixin:HideRowsFrom(index)
     for i = index, #self.rows do
-        self.rows[i]:Hide()
+        if self.rows[i] then
+            ns.UI:ReleaseRow(self.rows[i])
+            self.rows[i] = nil
+        end
     end
 end
 
@@ -287,8 +473,6 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
         self.scheduleText:SetText("")
         self.editScheduleBtn:Hide()
-        self.signupBtn:Hide()
-        self.signupCount:SetText("")
     else
         self:SetBackdropColor(unpack(UI.COLOR.CARD_BG))
         local t, h, d, u = ComputeComposition(members)
@@ -345,18 +529,13 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
 
         self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
 
-        local slots = coreKey and ns.Schedule and ns.Schedule:GetSlots(coreKey) or {}
-        local nextSlot, nextSlotIdx = nil, nil
+        local nextSlot = nil
         if coreKey and ns.Schedule then
-            local s = ns.Schedule:GetNextSlot(coreKey)
-            nextSlot = s
-            for i, slot in ipairs(slots) do
-                if slot == s then nextSlotIdx = i break end
-            end
+            nextSlot = ns.Schedule:GetNextSlot(coreKey)
         end
 
-        local canEditSched = ns.Notes and ns.Notes:CanEditUI() and coreId
-        schedLineVisible = (nextSlot ~= nil) or (canEditSched == true)
+        local canEditSched = ns.Notes and ns.Notes:CanEditUI() and (coreId ~= nil)
+        schedLineVisible = (nextSlot ~= nil) or canEditSched
 
         if schedLineVisible then
             if nextSlot then
@@ -371,43 +550,29 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         end
 
         if canEditSched then
-            self.editScheduleBtn:SetText(ns.L.SCHED_EDIT_BTN)
+            self.editScheduleBtn:SetText(self.editorOpen and "X" or ns.L.SCHED_EDIT_BTN)
             self.editScheduleBtn:Show()
+            local tc, ci = typeCode, coreId
             self.editScheduleBtn:SetScript("OnClick", function()
-                ns.UI:OpenScheduleEditor(typeCode, coreId)
+                if self.editorOpen then
+                    self.inlineEditor:Hide()
+                    self.editorOpen = false
+                else
+                    OpenCardEditor(self, tc, ci)
+                end
+                ns.UI:RefreshCoreList()
             end)
         else
             self.editScheduleBtn:Hide()
-        end
-
-        self.signupBtn:ClearAllPoints()
-        if canEditSched then
-            self.signupBtn:SetPoint("TOPRIGHT", self.editScheduleBtn, "TOPLEFT", -4, 0)
-        else
-            self.signupBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -UI.SIZE.CARD_PADDING, UI.SIZE.SCHED_Y)
-        end
-
-        if nextSlotIdx and ns.Signups then
-            local myState = ns.Signups:GetMyState(coreKey, nextSlotIdx)
-            self.signupBtn:Show()
-            self.signupBtn:SetText(ns.UI:GetSignupButtonLabel(myState))
-            self.signupBtn:SetScript("OnClick", function(s)
-                ns.UI:ShowSignupMenu(coreKey, nextSlotIdx, s)
-            end)
-            local counts = ns.Signups:CountForSlot(coreKey, nextSlotIdx)
-            self.signupCount:SetText(string.format("|cff4ade80%d|r |cff666666·|r |cffffd100%d|r |cff666666·|r |cffff5555%d|r", counts.yes, counts.maybe, counts.no))
-            self.signupCount:Show()
-        else
-            self.signupBtn:Hide()
-            self.signupCount:SetText("")
-            self.signupCount:Hide()
+            if self.editorOpen then
+                self.inlineEditor:Hide()
+                self.editorOpen = false
+            end
         end
 
         self.scheduleText:ClearAllPoints()
         self.scheduleText:SetPoint("TOPLEFT", self.accent, "TOPRIGHT", UI.SPACING.INNER + 2, UI.SIZE.SCHED_Y - 2)
-        if self.signupCount:IsShown() then
-            self.scheduleText:SetPoint("RIGHT", self.signupCount, "LEFT", -10, 0)
-        elseif self.editScheduleBtn:IsShown() then
+        if self.editScheduleBtn:IsShown() then
             self.scheduleText:SetPoint("RIGHT", self.editScheduleBtn, "LEFT", -10, 0)
         else
             self.scheduleText:SetPoint("RIGHT", self, "RIGHT", -UI.SIZE.CARD_PADDING, 0)
@@ -460,10 +625,36 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
             if invited > 0 and ns.RaidFormation and ns.RaidFormation.Begin and coreKey then
                 ns.RaidFormation:Begin(coreKey, fullMembers, { invitedCount = invited })
             end
+            local btn = self.inviteBtn
+            if invited > 0 then
+                btn:SetText(string.format(ns.L.INVITE_DONE_BTN, invited))
+            end
+            C_Timer.After(3, function()
+                if btn and btn:IsShown() then
+                    btn:SetText(ns.L.BTN_INVITE_ALL)
+                end
+            end)
         end)
     end
 
-    local headerOffset = schedLineVisible and UI.SIZE.HEADER_OFFSET_FULL or UI.SIZE.HEADER_OFFSET_COMPACT
+    local collapsed = self.collapseKey and ns.Database:IsCollapsed(self.collapseKey)
+
+    if collapsed and self.editorOpen then
+        self.inlineEditor:Hide()
+        self.editorOpen = false
+    end
+
+    local headerOffset
+    if self.editorOpen then
+        headerOffset = UI.SIZE.HEADER_OFFSET_WITH_EDITOR
+    else
+        headerOffset = schedLineVisible and UI.SIZE.HEADER_OFFSET_FULL or UI.SIZE.HEADER_OFFSET_COMPACT
+    end
+
+    if self.inlineEditor then
+        self.inlineEditor:SetShown(self.editorOpen)
+    end
+
     self.separator:ClearAllPoints()
     self.separator:SetPoint("TOPLEFT", self.accent, "TOPRIGHT", UI.SPACING.INNER, -headerOffset)
     self.separator:SetPoint("RIGHT", -UI.SIZE.CARD_PADDING, 0)
@@ -472,7 +663,6 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
     self.rowsParent:SetPoint("TOPLEFT", self, "TOPLEFT", UI.SPACING.INNER + 8, -(headerOffset + 6))
     self.rowsParent:SetPoint("RIGHT", self, "RIGHT", -UI.SIZE.CARD_PADDING, 0)
 
-    local collapsed = self.collapseKey and ns.Database:IsCollapsed(self.collapseKey)
     self.toggle.icon:SetText(collapsed and "+" or "-")
 
     if collapsed then

@@ -43,6 +43,8 @@ ns.Locale:Register("esMX", {
     FILTER_CLASS_TIP = "Clic para filtrar por clase. Varias clases reducen la lista.",
     FILTER_ROLE_TIP = "Clic para filtrar por rol (tanque, sanador o DPS). Solo un rol a la vez.",
     FILTER_MINE = "Míos",
+    FILTER_MINE_TIP_ON  = "Mostrando: solo tu core. Clic para ver todos.",
+    FILTER_MINE_TIP_OFF = "Mostrando: todos los cores. Clic para ver solo el tuyo.",
     FILTER_UNASSIGNED = "Sin tag",
 
     MENU_INVITE = "Invitar al grupo",
@@ -52,6 +54,8 @@ ns.Locale:Register("esMX", {
     MENU_CHANGE_ROLE = "Cambiar rol",
     MENU_REMOVE_FROM_CORE = "Quitar del Core %d",
     MENU_REMOVE_FROM_BENCH = "Quitar de la banca",
+    CONFIRM_REMOVE_CORE  = "¿Quitar a |cffffffff%s|r del Core %d?",
+    CONFIRM_REMOVE_BENCH = "¿Quitar a |cffffffff%s|r de la banca?",
     CUSTOM_CORE_PROMPT = "Número del core:",
     MENU_ADD_TO_CORE = "Asignar a core",
     MENU_ADD_TO_BENCH = "Añadir a la banca",
@@ -82,6 +86,7 @@ ns.Locale:Register("esMX", {
     NOTE_DIFF = "Escribí: \"%s\" | El server tiene: \"%s\"",
     NOTE_VERIFIED = "Verificado: el cambio en %s se guardó en el servidor.",
 
+    INVITE_DONE_BTN = "Enviadas: %d",
     INVITE_LOG = "Se invitó a %d miembro(s) del Core %d.",
     INVITE_NONE = "No hay miembros online para invitar en el Core %d.",
     INVITE_NONE_ALREADY_GROUPED = "El Core %d tiene gente conectada, pero nadie pudo ser invitado (quizá ya están en tu grupo o banda, o solo estás tú online en el core).",
@@ -264,16 +269,6 @@ ns.Locale:Register("esMX", {
     SCHED_NEXT = "Próx:",
     SCHED_NONE = "Sin horario",
     SCHED_EDIT_BTN = "Editar",
-    SCHED_EDIT_TITLE = "Editar horarios — Core %d",
-    SCHED_EDIT_HINT = "Hasta 5 slots por core. Clic al día para cambiarlo, hora/minuto en hora del server.",
-    SCHED_ADD_SLOT = "Agregar slot",
     BTN_SAVE = "Guardar",
     BTN_CANCEL = "Cancelar",
-
-    SIGNUP_PROMPT = "Apuntarme",
-    SIGNUP_TITLE = "Tu asistencia",
-    SIGNUP_YES = "Voy",
-    SIGNUP_MAYBE = "Tal vez",
-    SIGNUP_NO = "No puedo",
-    SIGNUP_CLEAR = "Limpiar",
 })

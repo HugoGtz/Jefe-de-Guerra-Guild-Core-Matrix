@@ -40,7 +40,6 @@ end
 local function SnapshotMigrationState()
     return {
         schedules = DeepCopy(GCM_Sync.schedules),
-        signups = DeepCopy(GCM_Sync.signups),
         collapsed = DeepCopy(GCM_Settings.collapsed),
     }
 end
@@ -49,10 +48,6 @@ local function RestoreMigrationState(snap)
     wipe(GCM_Sync.schedules)
     for k, v in pairs(snap.schedules) do
         GCM_Sync.schedules[k] = DeepCopy(v)
-    end
-    wipe(GCM_Sync.signups)
-    for k, v in pairs(snap.signups) do
-        GCM_Sync.signups[k] = DeepCopy(v)
     end
     wipe(GCM_Settings.collapsed)
     for k, v in pairs(snap.collapsed) do
@@ -86,21 +81,6 @@ function ns.Database:MigrateLegacyCoreKeys()
             schedules[nk] = MergeScheduleEntry(schedules[nk], v)
         end
     end
-    local signups = GCM_Sync.signups
-    if type(signups) == "table" then
-        local snap = {}
-        for k, v in pairs(signups) do snap[k] = v end
-        wipe(signups)
-        for k, v in pairs(snap) do
-            local corePart, slotIdx = k:match("^(.+)#(%d+)$")
-            if corePart and slotIdx then
-                local nk = LegacyCoreKeyToC(corePart) .. "#" .. slotIdx
-                signups[nk] = v
-            else
-                signups[k] = v
-            end
-        end
-    end
     local collapsed = GCM_Settings.collapsed
     if type(collapsed) == "table" then
         local nextCollapsed = {}
@@ -111,23 +91,6 @@ function ns.Database:MigrateLegacyCoreKeys()
         end
         GCM_Settings.collapsed = nextCollapsed
     end
-end
-
-local function MergeSignupBench(a, b)
-    if not a then return b end
-    if not b then return a end
-    local wa = tonumber(a.weekKey) or 0
-    local wb = tonumber(b.weekKey) or 0
-    local chosen = wa >= wb and a or b
-    local other = wa >= wb and b or a
-    if other.weekKey ~= chosen.weekKey then return chosen end
-    chosen.states = chosen.states or {}
-    for name, st in pairs(other.states or {}) do
-        if chosen.states[name] == nil then
-            chosen.states[name] = st
-        end
-    end
-    return chosen
 end
 
 function ns.Database:NormalizeBenchKeys()
@@ -146,21 +109,6 @@ function ns.Database:NormalizeBenchKeys()
         end
         for _, val in ipairs(extras) do
             schedules["B1"] = MergeScheduleEntry(schedules["B1"], val)
-        end
-    end
-    local signups = GCM_Sync.signups
-    if type(signups) == "table" then
-        local snap = {}
-        for k, v in pairs(signups) do snap[k] = v end
-        for k, v in pairs(snap) do
-            local bn, slotIdx = k:match("^B(%d+)#(%d+)$")
-            bn = tonumber(bn)
-            slotIdx = tonumber(slotIdx)
-            if bn and bn > 1 and slotIdx then
-                local nk = "B1#" .. slotIdx
-                signups[k] = nil
-                signups[nk] = MergeSignupBench(signups[nk], v)
-            end
         end
     end
     local collapsed = GCM_Settings.collapsed
@@ -192,7 +140,6 @@ function ns.Database:Initialize()
 
     GCM_Sync = GCM_Sync or {}
     GCM_Sync.schedules = GCM_Sync.schedules or {}
-    GCM_Sync.signups = GCM_Sync.signups or {}
     GCM_Sync.specs = GCM_Sync.specs or {}
     GCM_Sync.lfg = GCM_Sync.lfg or {}
     GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}

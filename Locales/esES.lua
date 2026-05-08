@@ -43,6 +43,8 @@ ns.Locale:Register("esES", {
     FILTER_CLASS_TIP = "Clic para filtrar por clase. Varias clases reducen la lista.",
     FILTER_ROLE_TIP = "Clic para filtrar por rol (tanque, sanador o DPS). Solo un rol a la vez.",
     FILTER_MINE = "Míos",
+    FILTER_MINE_TIP_ON  = "Mostrando: solo tu core. Clic para ver todos.",
+    FILTER_MINE_TIP_OFF = "Mostrando: todos los cores. Clic para ver solo el tuyo.",
     FILTER_UNASSIGNED = "Sin tag",
 
     MENU_INVITE = "Invitar al grupo",
@@ -52,6 +54,8 @@ ns.Locale:Register("esES", {
     MENU_CHANGE_ROLE = "Cambiar rol",
     MENU_REMOVE_FROM_CORE = "Quitar del Core %d",
     MENU_REMOVE_FROM_BENCH = "Quitar de la banca",
+    CONFIRM_REMOVE_CORE  = "¿Quitar a |cffffffff%s|r del Core %d?",
+    CONFIRM_REMOVE_BENCH = "¿Quitar a |cffffffff%s|r de la banca?",
     CUSTOM_CORE_PROMPT = "Número del core:",
     MENU_ADD_TO_CORE = "Asignar a core",
     MENU_ADD_TO_BENCH = "Añadir a la banca",
@@ -82,6 +86,7 @@ ns.Locale:Register("esES", {
     NOTE_DIFF = "Escribí: \"%s\" | El server tiene: \"%s\"",
     NOTE_VERIFIED = "Verificado: la escritura de %s se persistió en el servidor.",
 
+    INVITE_DONE_BTN = "Enviadas: %d",
     INVITE_LOG = "Invitados %d miembro(s) del Core %d.",
     INVITE_NONE = "Ningún miembro online para invitar en el Core %d.",
     INVITE_NONE_ALREADY_GROUPED = "El Core %d tiene gente conectada, pero nadie pudo ser invitado (quizá ya están en tu grupo o banda, o solo estás tú como miembro online del core).",
@@ -264,16 +269,6 @@ ns.Locale:Register("esES", {
     SCHED_NEXT = "Próx:",
     SCHED_NONE = "Sin horario",
     SCHED_EDIT_BTN = "Editar",
-    SCHED_EDIT_TITLE = "Editar horarios — Core %d",
-    SCHED_EDIT_HINT = "Hasta 5 slots por core. Haz clic en el día para rotar, hora/minuto en tiempo del servidor.",
-    SCHED_ADD_SLOT = "Añadir slot",
     BTN_SAVE = "Guardar",
     BTN_CANCEL = "Cancelar",
-
-    SIGNUP_PROMPT = "Apuntarse",
-    SIGNUP_TITLE = "Tu asistencia",
-    SIGNUP_YES = "Asisto",
-    SIGNUP_MAYBE = "Tal vez",
-    SIGNUP_NO = "No puedo",
-    SIGNUP_CLEAR = "Borrar",
 })
