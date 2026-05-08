@@ -62,11 +62,14 @@ LFGPanel:SetPoint("BOTTOMRIGHT", MainFrame, "BOTTOMRIGHT", -8,  8)
 LFGPanel:Hide()
 ns.UI.LFGPanel = LFGPanel
 
+local lfgRefreshOnceFrame
 LFGPanel:SetScript("OnShow", function()
     if ns.UI.RefreshLFGList then ns.UI:RefreshLFGList() end
-    local _once = CreateFrame("Frame", nil, UIParent)
-    _once:SetScript("OnUpdate", function(self)
-        self:SetScript("OnUpdate", nil)
+    if not lfgRefreshOnceFrame then
+        lfgRefreshOnceFrame = CreateFrame("Frame", nil, LFGPanel)
+    end
+    lfgRefreshOnceFrame:SetScript("OnUpdate", function(s)
+        s:SetScript("OnUpdate", nil)
         if LFGPanel:IsShown() and ns.UI.RefreshLFGList then
             ns.UI:RefreshLFGList()
         end

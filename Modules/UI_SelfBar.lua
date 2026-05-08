@@ -39,9 +39,6 @@ local declareSep = SelfBar:CreateTexture(nil, "ARTWORK")
 declareSep:SetTexture(Theme.TEX_WHITE)
 declareSep:SetVertexColor(unpack(UI.COLOR.SEP))
 declareSep:SetWidth(1)
-declareSep:SetPoint("RIGHT", SelfBar, "RIGHT", -148, 0)
-declareSep:SetPoint("TOP",    SelfBar, "TOP",    0,   -8)
-declareSep:SetPoint("BOTTOM", SelfBar, "BOTTOM", 0,    8)
 
 local roleIcon = SelfBar:CreateTexture(nil, "ARTWORK")
 roleIcon:SetSize(24, 24)
@@ -140,8 +137,6 @@ btnD:SetPoint("RIGHT", btnSpec, "LEFT", -6, 0)
 btnH:SetPoint("RIGHT", btnD, "LEFT", -4, 0)
 btnT:SetPoint("RIGHT", btnH, "LEFT", -4, 0)
 
-summary:SetPoint("RIGHT", btnT, "LEFT", -10, 0)
-
 pubBtn:SetScript("OnEnter", function()
     GameTooltip:SetOwner(pubBtn, "ANCHOR_LEFT")
     if ns.PublicNote and ns.PublicNote:IsManaged() then
@@ -188,6 +183,59 @@ end)
 btnSpec:SetScript("OnClick", function()
     if ns.Roles then ns.Roles:SetMine(nil) end
 end)
+
+local btnAltMain = CreateFrame("Button", nil, SelfBar, "UIPanelButtonTemplate")
+btnAltMain:SetHeight(22)
+btnAltMain:SetWidth(64)
+
+local function AltMainClear()
+    if not IsInGuild() then return end
+    if ns.AltLinks and ns.AltLinks.SetMine then
+        ns.AltLinks:SetMine("")
+    end
+    print(ns.L.BRAND_GREEN .. " " .. ns.L.ALT_LINK_CLEARED)
+    if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
+end
+
+local function LayoutSelfBarAltCluster()
+    declareSep:ClearAllPoints()
+    declareSep:SetWidth(1)
+    declareSep:SetPoint("TOP", SelfBar, "TOP", 0, -8)
+    declareSep:SetPoint("BOTTOM", SelfBar, "BOTTOM", 0, 8)
+    summary:ClearAllPoints()
+    summary:SetPoint("BOTTOMLEFT", roleIcon, "BOTTOMRIGHT", 8, 2)
+    summary:SetJustifyH("LEFT")
+    if IsInGuild() then
+        btnAltMain:Show()
+        btnAltMain:SetPoint("RIGHT", btnT, "LEFT", -8, 0)
+        declareSep:SetPoint("RIGHT", btnAltMain, "LEFT", -8, 0)
+        summary:SetPoint("RIGHT", btnAltMain, "LEFT", -10, 0)
+    else
+        btnAltMain:Hide()
+        declareSep:SetPoint("RIGHT", btnT, "LEFT", -10, 0)
+        summary:SetPoint("RIGHT", btnT, "LEFT", -10, 0)
+    end
+end
+
+btnAltMain:SetScript("OnMouseUp", function(_, button)
+    if not IsInGuild() then return end
+    if button == "RightButton" then
+        AltMainClear()
+    elseif button == "LeftButton" then
+        if StaticPopupDialogs and StaticPopupDialogs["GCM_ALT_MAIN"] then
+            StaticPopup_Show("GCM_ALT_MAIN")
+        end
+    end
+end)
+btnAltMain:SetScript("OnEnter", function()
+    GameTooltip:SetOwner(btnAltMain, "ANCHOR_TOP")
+    GameTooltip:SetText(ns.L.SELF_BAR_ALT_MAIN_BTN, 1, 1, 1)
+    GameTooltip:AddLine(ns.L.SELF_BAR_TIP_ALT_MAIN, 0.75, 0.75, 0.8, true)
+    GameTooltip:Show()
+end)
+btnAltMain:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+LayoutSelfBarAltCluster()
 
 function SelfBar:_refreshVisuals()
     local me = UnitName("player")
@@ -252,9 +300,16 @@ function SelfBar:Refresh()
     if specStr ~= "" then
         specPart = "  |cffaaaaaa· " .. specStr .. "|r"
     end
+    local altOf = ""
+    if ns.AltLinks and ns.AltLinks.GetMain then
+        local mn = ns.AltLinks:GetMain(me)
+        if mn then
+            altOf = "  |cff888888· " .. string.format(ns.L.SELF_BAR_ALT_OF, mn)
+        end
+    end
     local declared = ns.Roles and ns.Roles:Get(me)
     local src = declared and ns.L.SELF_BAR_SOURCE_DECLARED or ns.L.SELF_BAR_SOURCE_SPEC
-    summary:SetText(string.format("|cffffffff%s|r%s  |cff778899· %s|r", roleWord, specPart, src))
+    summary:SetText(string.format("|cffffffff%s|r%s%s  |cff778899· %s|r", roleWord, specPart, altOf, src))
 
     if IsInGuild() and not PubAllowed() then
         pubBtn:SetAlpha(0.5)
@@ -270,6 +325,9 @@ function SelfBar:Refresh()
             pubText:SetText(ns.L.SELF_BAR_PUB_OFF)
         end
     end
+
+    btnAltMain:SetText(ns.L.SELF_BAR_ALT_MAIN_BTN)
+    LayoutSelfBarAltCluster()
 
     self:_refreshVisuals()
 end

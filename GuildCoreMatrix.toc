@@ -22,6 +22,8 @@ Modules\Professions.lua
 Modules\Schedule.lua
 Modules\Specs.lua
 Modules\Roles.lua
+Modules\AltLinks.lua
+Modules\GearAudit.lua
 Modules\PublicNote.lua
 Modules\UI_Theme.lua
 Modules\UI_Elements.lua
@@ -32,6 +34,7 @@ Modules\UI_FilterBar.lua
 Modules\UI_Professions.lua
 Modules\UI_Schedule.lua
 Modules\UI_CoreList.lua
+Modules\UI_Dashboard.lua
 Modules\UI_LFG.lua
 Modules\UI_Minimap.lua
 Core.lua

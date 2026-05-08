@@ -71,9 +71,12 @@ StaticPopupDialogs["GCM_COPY_NAME"] = {
     button2 = OKAY or "OK",
     hasEditBox = true,
     OnShow = function(self, data)
-        self.editBox:SetText(data or "")
-        self.editBox:HighlightText()
-        self.editBox:SetFocus()
+        local eb = self.editBox or self.EditBox
+        if eb then
+            eb:SetText(data or "")
+            eb:HighlightText()
+            eb:SetFocus()
+        end
     end,
     EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
@@ -95,12 +98,16 @@ StaticPopupDialogs["GCM_CUSTOM_CORE"] = {
     hasEditBox = true,
     maxLetters = 4,
     OnShow = function(self)
-        self.editBox:SetNumeric(true)
-        self.editBox:SetText("")
-        self.editBox:SetFocus()
+        local eb = self.editBox or self.EditBox
+        if eb then
+            eb:SetNumeric(true)
+            eb:SetText("")
+            eb:SetFocus()
+        end
     end,
     OnAccept = function(self, data)
-        local id = tonumber(self.editBox:GetText())
+        local eb = self.editBox or self.EditBox
+        local id = eb and tonumber(eb:GetText())
         if id and id >= 1 and data then
             ns.Notes:Assign(data.name, data.typeCode, id)
         else
@@ -460,6 +467,12 @@ function MemberRowMixin:ShowTooltip()
             GameTooltip:AddLine(string.format("%s: %s", ns.L.DECLARED_ROLE_LABEL, drLabel), 0.7, 0.85, 1.0)
         end
     end
+    if m.linkedMain then
+        GameTooltip:AddLine(string.format(ns.L.TOOLTIP_ALT_OF, m.linkedMain), 0.72, 0.82, 0.95)
+    end
+    if m.gearIssueCount and m.gearIssueCount > 0 then
+        GameTooltip:AddLine(string.format(ns.L.TOOLTIP_GEAR_AUDIT, m.gearIssueCount), 0.95, 0.65, 0.35)
+    end
     if m.lead then
         GameTooltip:AddLine(ns.UI:GetRaidLeadIcon() .. " |cffffd100" .. ns.L.LEADER_LABEL .. "|r", 1, 1, 1)
     end
@@ -504,7 +517,11 @@ function MemberRowMixin:SetData(member, context, rowIndex)
     if not member.online then
         r, g, b = r * 0.55, g * 0.55, b * 0.55
     end
-    self.nameText:SetText(member.name)
+    local rowName = member.name
+    if member.linkedMain and member.linkedMain ~= "" then
+        rowName = rowName .. string.format(ns.L.ROW_ALT_OF, member.linkedMain)
+    end
+    self.nameText:SetText(rowName)
     self.nameText:SetTextColor(r, g, b)
 
     local noteRole = member.role

@@ -34,9 +34,11 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if ns.Schedule and ns.Schedule.Init then ns.Schedule:Init() end
         if ns.Specs and ns.Specs.Init then ns.Specs:Init() end
         if ns.Roles and ns.Roles.Init then ns.Roles:Init() end
+        if ns.AltLinks and ns.AltLinks.Init then ns.AltLinks:Init() end
         if ns.PublicNote and ns.PublicNote.Init then ns.PublicNote:Init() end
         if ns.LFG and ns.LFG.Init then ns.LFG:Init() end
         if ns.Professions and ns.Professions.Init then ns.Professions:Init() end
+        if ns.GearAudit and ns.GearAudit.Init then ns.GearAudit:Init() end
         if ns.RaidFormation and ns.RaidFormation.Init then ns.RaidFormation:Init() end
     elseif event == "PLAYER_LOGIN" then
         print(ns.L.BRAND .. " " .. string.format(ns.L.LOGIN_READY, ns.addonVersion or "?"))
@@ -45,8 +47,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if ns.Schedule and ns.Schedule.RequestSync then ns.Schedule:RequestSync() end
         if ns.Specs and ns.Specs.RequestSync then ns.Specs:RequestSync() end
         if ns.Roles and ns.Roles.RequestSync then ns.Roles:RequestSync() end
+        if ns.AltLinks and ns.AltLinks.RequestSync then ns.AltLinks:RequestSync() end
         if ns.LFG and ns.LFG.RequestSync then ns.LFG:RequestSync() end
         if ns.Professions and ns.Professions.RequestSync then ns.Professions:RequestSync() end
+        if ns.GearAudit and ns.GearAudit.RequestSync then ns.GearAudit:RequestSync() end
         if C_Timer and C_Timer.After then
             C_Timer.After(3, function()
                 if ns.PublicNote and ns.PublicNote.Reapply then ns.PublicNote:Reapply() end

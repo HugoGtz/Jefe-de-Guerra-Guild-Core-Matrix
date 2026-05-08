@@ -238,6 +238,9 @@ local function BuildCardEditor(card)
     e.noteBox:SetPoint("RIGHT", e.cancelBtn,  "LEFT", -6, 0)
     e.noteBox:SetAutoFocus(false)
     e.noteBox:SetMaxLetters(60)
+    e.noteBox:SetScript("OnEscapePressed", function()
+        e.cancelBtn:Click()
+    end)
 
     e.saveBtn:SetScript("OnClick", function()
         if not ns.Notes or not ns.Notes:CanEditUI() then return end
@@ -828,6 +831,8 @@ function ns.UI:Refresh()
         if ns.UI.RefreshLFGList then ns.UI:RefreshLFGList() end
     elseif ns.UI.ActivePanel == "prof" then
         if ns.UI.RefreshProfessions then ns.UI:RefreshProfessions() end
+    elseif ns.UI.ActivePanel == "dashboard" then
+        if ns.UI.RefreshDashboard then ns.UI:RefreshDashboard() end
     elseif ns.UI.CoreListPanel and ns.UI.CoreListPanel:IsShown() then
         ns.UI:RefreshCoreList()
     end
@@ -836,40 +841,33 @@ end
 function ns.UI:SetMainPanel(mode)
     ns.UI.ActivePanel = mode
     local isCores = (mode == "cores")
-    local isLfg = (mode == "lfg")
-    local isProf = (mode == "prof")
+    local isLfg   = (mode == "lfg")
+    local isProf  = (mode == "prof")
+    local isDash  = (mode == "dashboard")
     if ns.UI.FilterBar and ns.UI.FilterBar.SetCoreFiltersVisible then
         ns.UI.FilterBar:SetCoreFiltersVisible(isCores and "cores" or "lfg")
     end
     local coresPanel = ns.UI.CoreListPanel or _G.GCM_CoreListPanel
-    local lfgPanel = ns.UI.LFGPanel or _G.GCM_LFGPanel
-    local profPanel = ns.UI.ProfPanel or _G.GCM_ProfPanel
-    if coresPanel then
-        coresPanel:SetShown(isCores)
-        if isCores then coresPanel:Show() else coresPanel:Hide() end
-    end
-    if lfgPanel then
-        lfgPanel:SetShown(isLfg)
-        if isLfg then lfgPanel:Show() else lfgPanel:Hide() end
-    end
-    if profPanel then
-        profPanel:SetShown(isProf)
-        if isProf then profPanel:Show() else profPanel:Hide() end
-    end
+    local lfgPanel   = ns.UI.LFGPanel      or _G.GCM_LFGPanel
+    local profPanel  = ns.UI.ProfPanel     or _G.GCM_ProfPanel
+    local dashPanel  = ns.UI.DashPanel     or _G.GCM_DashPanel
+    if coresPanel then coresPanel:SetShown(isCores) end
+    if lfgPanel   then lfgPanel:SetShown(isLfg)     end
+    if profPanel  then profPanel:SetShown(isProf)   end
+    if dashPanel  then dashPanel:SetShown(isDash)   end
     local mf = ns.UI.MainFrame
     local mainLvl = (mf and mf.GetFrameLevel and mf:GetFrameLevel()) or 0
-    if coresPanel and coresPanel.SetFrameLevel then
-        coresPanel:SetFrameLevel(mainLvl + (isCores and 50 or 5))
-    end
-    if lfgPanel and lfgPanel.SetFrameLevel then
-        lfgPanel:SetFrameLevel(mainLvl + (isLfg and 50 or 5))
-    end
-    if profPanel and profPanel.SetFrameLevel then
-        profPanel:SetFrameLevel(mainLvl + (isProf and 50 or 5))
-    end
+    if coresPanel and coresPanel.SetFrameLevel then coresPanel:SetFrameLevel(mainLvl + (isCores and 50 or 5)) end
+    if lfgPanel   and lfgPanel.SetFrameLevel   then lfgPanel:SetFrameLevel(mainLvl   + (isLfg   and 50 or 5)) end
+    if profPanel  and profPanel.SetFrameLevel  then profPanel:SetFrameLevel(mainLvl  + (isProf  and 50 or 5)) end
+    if dashPanel  and dashPanel.SetFrameLevel  then dashPanel:SetFrameLevel(mainLvl  + (isDash  and 50 or 5)) end
     if isCores and coresPanel and coresPanel.Raise then pcall(function() coresPanel:Raise() end) end
-    if isLfg and lfgPanel and lfgPanel.Raise then pcall(function() lfgPanel:Raise() end) end
-    if isProf and profPanel and profPanel.Raise then pcall(function() profPanel:Raise() end) end
+    if isLfg   and lfgPanel   and lfgPanel.Raise   then pcall(function() lfgPanel:Raise()   end) end
+    if isProf  and profPanel  and profPanel.Raise  then pcall(function() profPanel:Raise()  end) end
+    if isDash  and dashPanel  and dashPanel.Raise  then pcall(function() dashPanel:Raise()  end) end
+    if isProf and ns.Professions and ns.Professions.RequestLocalTradeSkillSnapshot then
+        ns.Professions:RequestLocalTradeSkillSnapshot()
+    end
     if ns.UI.UpdateMainTabs then ns.UI:UpdateMainTabs(mode) end
     if ns.UI.BringMainTabsToFront then ns.UI.BringMainTabsToFront() end
     if ns.UI.Refresh then ns.UI:Refresh() end

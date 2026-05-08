@@ -6,30 +6,32 @@ local Theme = ns.Theme
 local UI = {
     SIZE = { MIN_W = 480, MIN_H = 420, MAX_W = 900, MAX_H = 1000, RESIZE = 16 },
     TAB = {
-        H = 22,
+        H = 24,
         GAP = 2,
-        PAD_X = 12,
+        PAD_X = 14,
         MIN_W = 50,
-        STRIP_H = 28,
+        STRIP_H = 30,
         SYNC_GAP = 8,
-        BG_OFF = { 0.18, 0.13, 0.13, 1 },
-        BG_HOVER = { 0.28, 0.20, 0.20, 1 },
-        BG_ON = { 0.40, 0.10, 0.10, 1 },
-        TEXT_OFF = { 0.70, 0.68, 0.68, 0.90 },
-        TEXT_ON = { 1.00, 0.96, 0.96, 1 },
+        BG_OFF   = { 0.10, 0.08, 0.07, 0.15 },
+        BG_HOVER = { 0.32, 0.24, 0.16, 0.55 },
+        BG_ON    = { 0.24, 0.18, 0.12, 0.90 },
+        TEXT_OFF = { 0.55, 0.53, 0.53, 0.75 },
+        TEXT_ON  = { 1.00, 1.00, 1.00, 1.00 },
     },
 }
 
-local mainTabOrder = { "cores", "prof", "lfg" }
+local mainTabOrder = { "cores", "prof", "lfg", "dashboard" }
 local mainTabLocaleKey = {
-    cores = "LFG_TAB_CORES",
-    prof = "PROF_TAB",
-    lfg = "LFG_TAB_LOOKING",
+    cores     = "LFG_TAB_CORES",
+    prof      = "PROF_TAB",
+    lfg       = "LFG_TAB_LOOKING",
+    dashboard = "DASH_TAB",
 }
 local mainTabTipKey = {
-    cores = "TAB_TIP_CORES",
-    prof = "TAB_TIP_PROF",
-    lfg = "TAB_TIP_LFG",
+    cores     = "TAB_TIP_CORES",
+    prof      = "TAB_TIP_PROF",
+    lfg       = "TAB_TIP_LFG",
+    dashboard = "TAB_TIP_DASH",
 }
 local mainTabs = {}
 
@@ -47,12 +49,10 @@ local function ApplyOneMainTab(btn, active)
         btn.bg:SetVertexColor(unpack(UI.TAB.BG_ON))
         btn.text:SetTextColor(unpack(UI.TAB.TEXT_ON))
         btn.sel:Show()
-        if btn.topLine then btn.topLine:Show() end
     else
         btn.bg:SetVertexColor(unpack(UI.TAB.BG_OFF))
         btn.text:SetTextColor(unpack(UI.TAB.TEXT_OFF))
         btn.sel:Hide()
-        if btn.topLine then btn.topLine:Hide() end
     end
 end
 
@@ -75,16 +75,20 @@ end
 
 local function LayoutMainTabs(strip)
     strip = strip or ns.UI.TabStrip
-    local TabCores = mainTabs.cores
-    local TabProf = mainTabs.prof
-    local TabLFG = mainTabs.lfg
-    if not strip or not TabCores or not TabProf or not TabLFG then return end
-    TabCores:ClearAllPoints()
-    TabCores:SetPoint("TOPLEFT", strip, "TOPLEFT", 8, -3)
-    TabProf:ClearAllPoints()
-    TabProf:SetPoint("TOPLEFT", TabCores, "TOPRIGHT", UI.TAB.GAP, 0)
-    TabLFG:ClearAllPoints()
-    TabLFG:SetPoint("TOPLEFT", TabProf, "TOPRIGHT", UI.TAB.GAP, 0)
+    if not strip then return end
+    local prev = nil
+    for _, id in ipairs(mainTabOrder) do
+        local t = mainTabs[id]
+        if t then
+            t:ClearAllPoints()
+            if prev then
+                t:SetPoint("TOPLEFT", prev, "TOPRIGHT", UI.TAB.GAP, 0)
+            else
+                t:SetPoint("TOPLEFT", strip, "TOPLEFT", 8, -3)
+            end
+            prev = t
+        end
+    end
 end
 
 local function MakeMainTab(tabId, parent)
@@ -95,19 +99,11 @@ local function MakeMainTab(tabId, parent)
     b.bg:SetAllPoints()
     b.bg:SetTexture(Theme.TEX_WHITE)
     b.bg:SetVertexColor(unpack(UI.TAB.BG_OFF))
-    -- top-border highlight line for the active state
-    b.topLine = b:CreateTexture(nil, "ARTWORK")
-    b.topLine:SetHeight(1)
-    b.topLine:SetPoint("TOPLEFT",  b, "TOPLEFT",  2, 0)
-    b.topLine:SetPoint("TOPRIGHT", b, "TOPRIGHT", -2, 0)
-    b.topLine:SetTexture(Theme.TEX_WHITE)
-    b.topLine:SetVertexColor(0.55, 0.14, 0.14, 0.60)
-    b.topLine:Hide()
     -- bottom accent bar (gold when active)
     b.sel = b:CreateTexture(nil, "ARTWORK")
-    b.sel:SetHeight(2)
-    b.sel:SetPoint("BOTTOMLEFT",  b, "BOTTOMLEFT",  2, 0)
-    b.sel:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 0)
+    b.sel:SetHeight(3)
+    b.sel:SetPoint("BOTTOMLEFT",  b, "BOTTOMLEFT",  0, 0)
+    b.sel:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
     b.sel:SetTexture(Theme.TEX_WHITE)
     b.sel:SetVertexColor(unpack(Theme.BRAND_GOLD))
     b.sel:Hide()
@@ -121,7 +117,7 @@ local function MakeMainTab(tabId, parent)
     b:SetScript("OnEnter", function(self)
         if (ns.UI.ActivePanel or "cores") ~= self.tabId then
             self.bg:SetVertexColor(unpack(UI.TAB.BG_HOVER))
-            self.text:SetTextColor(0.94, 0.90, 0.90, 1)
+            self.text:SetTextColor(0.90, 0.88, 0.85, 1)
         end
         local tipKey = mainTabTipKey[self.tabId]
         if tipKey and ns.L and ns.L[tipKey] then
@@ -147,6 +143,15 @@ MainFrame:EnableMouse(true)
 MainFrame:RegisterForDrag("LeftButton")
 MainFrame:Hide()
 
+if UISpecialFrames then
+    local sid = MainFrame:GetName()
+    local dup = false
+    for i = 1, #UISpecialFrames do
+        if UISpecialFrames[i] == sid then dup = true break end
+    end
+    if not dup then tinsert(UISpecialFrames, sid) end
+end
+
 if MainFrame.SetResizeBounds then
     MainFrame:SetResizeBounds(UI.SIZE.MIN_W, UI.SIZE.MIN_H, UI.SIZE.MAX_W, UI.SIZE.MAX_H)
 else
@@ -168,6 +173,19 @@ MainFrame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     local point, _, relativePoint, x, y = self:GetPoint()
     GCM_Settings.framePosition = { point = point, relativePoint = relativePoint, x = x, y = y }
+end)
+
+MainFrame:SetScript("OnHide", function(self)
+    local kb = GetCurrentKeyBoardFocus and GetCurrentKeyBoardFocus()
+    if not kb or not kb.ClearFocus then return end
+    local p = kb
+    while p do
+        if p == self then
+            kb:ClearFocus()
+            return
+        end
+        p = p.GetParent and p:GetParent() or nil
+    end
 end)
 
 local function ApplyPersistedLayout()
@@ -236,9 +254,11 @@ LayoutMainTabs(TabStrip)
 local TabCores = mainTabs.cores
 local TabProf = mainTabs.prof
 local TabLFG = mainTabs.lfg
+local TabDash = mainTabs.dashboard
 ns.UI.TabCores = TabCores
 ns.UI.TabProf = TabProf
 ns.UI.TabLFG = TabLFG
+ns.UI.TabDash = TabDash
 
 local Header = TitleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 Header:SetPoint("LEFT", HeaderLogo, "RIGHT", 5, 0)
@@ -435,6 +455,31 @@ SlashCmdList["GCM"] = function(msg)
             return
         end
         print(ns.L.BRAND .. " " .. ns.L.ROLE_SLASH_INVALID)
+        return
+    end
+    if lead == "alt" then
+        local rest = tail:match("^%s*(.*)$") or ""
+        rest = rest:match("^%s*(.-)%s*$") or ""
+        if rest == "" or rest == "?" or string.lower(rest) == "help" then
+            print(ns.L.BRAND .. " " .. ns.L.ALT_SLASH_USAGE)
+            return
+        end
+        local low = string.lower(rest)
+        if low == "clear" or low == "off" then
+            if ns.AltLinks and ns.AltLinks.SetMine then
+                ns.AltLinks:SetMine("")
+            end
+            print(ns.L.BRAND_GREEN .. " " .. ns.L.ALT_LINK_CLEARED)
+            return
+        end
+        if ns.AltLinks and ns.AltLinks.SetMine then
+            local nk = Ambiguate(rest, "none")
+            ns.AltLinks:SetMine(nk)
+            if ns.Cache and not ns.Cache[nk] then
+                print(ns.L.BRAND_YELLOW .. " " .. ns.L.ALT_LINK_UNKNOWN)
+            end
+            print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.ALT_LINK_SET, nk))
+        end
         return
     end
     if arg == "spec" then

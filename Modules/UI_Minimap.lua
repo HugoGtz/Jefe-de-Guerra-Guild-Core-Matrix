@@ -1,6 +1,5 @@
 local _, ns = ...
 local MainFrame = ns.UI.MainFrame
-local Theme = ns.Theme
 
 local RADIUS = 5
 
@@ -31,14 +30,6 @@ if MinimapBtn.SetFixedFrameLevel then MinimapBtn:SetFixedFrameLevel(true) end
 MinimapBtn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 MinimapBtn:RegisterForDrag("LeftButton")
 MinimapBtn:RegisterForClicks("AnyUp")
-
--- Subtle hover glow ring
-local hoverGlow = MinimapBtn:CreateTexture(nil, "BACKGROUND")
-hoverGlow:SetSize(34, 34)
-hoverGlow:SetPoint("CENTER", 0, 0)
-hoverGlow:SetTexture(Theme.TEX_WHITE)
-hoverGlow:SetVertexColor(0.65, 0.10, 0.10, 0.55)  -- brand red at reduced alpha
-hoverGlow:Hide()
 
 local icon = MinimapBtn:CreateTexture(nil, "BACKGROUND")
 icon:SetSize(22, 22)
@@ -129,7 +120,6 @@ MinimapBtn:SetScript("OnClick", function(self)
 end)
 
 MinimapBtn:SetScript("OnEnter", function(self)
-    hoverGlow:Show()
     icon:SetAlpha(1.0)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:SetText(ns.L.TOOLTIP_TITLE)
@@ -145,7 +135,6 @@ MinimapBtn:SetScript("OnEnter", function(self)
     GameTooltip:Show()
 end)
 MinimapBtn:SetScript("OnLeave", function()
-    hoverGlow:Hide()
     GameTooltip:Hide()
 end)
 

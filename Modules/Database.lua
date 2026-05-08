@@ -144,7 +144,9 @@ function ns.Database:Initialize()
     GCM_Sync.lfg = GCM_Sync.lfg or {}
     GCM_Sync.coreRaidPrefs = GCM_Sync.coreRaidPrefs or {}
     GCM_Sync.declaredRoles = GCM_Sync.declaredRoles or {}
+    GCM_Sync.altMain = GCM_Sync.altMain or {}
     GCM_Sync.professions = GCM_Sync.professions or {}
+    GCM_Sync.gearAudit = GCM_Sync.gearAudit or {}
     GCM_Sync.meta = GCM_Sync.meta or { version = 1 }
     ns.Sync = GCM_Sync
 

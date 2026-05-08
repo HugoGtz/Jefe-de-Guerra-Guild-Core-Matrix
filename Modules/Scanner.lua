@@ -155,6 +155,14 @@ function ns.Scanner:ParseGuildNotesNow(opts)
                     ns.Professions:PushToCache(cleanName, tempCache)
                 end
 
+                if ns.AltLinks and ns.AltLinks.HydrateCacheEntry then
+                    ns.AltLinks:HydrateCacheEntry(cleanName, tempCache[cleanName])
+                end
+
+                if ns.GearAudit and ns.GearAudit.PushToCache then
+                    ns.GearAudit:PushToCache(cleanName, tempCache)
+                end
+
                 foundCount = foundCount + count
             end
         end
@@ -230,6 +238,9 @@ function ns.Scanner:GetMembersForCore(typeCode, coreId)
                 lootMaster = lootMaster,
                 hasConflict = list and CountKeys(list) > 1,
                 conflictCount = list and CountKeys(list) or 0,
+                linkedMain = entry.linkedMain,
+                gearIssueCount = entry.gearIssueCount,
+                gearAuditAt = entry.gearAuditAt,
             }
         end
     end
@@ -268,6 +279,9 @@ function ns.Scanner:GetUnassignedMembers()
                 publicNote = entry.publicNote,
                 lastOnline = entry.lastOnline,
                 role = nil,
+                linkedMain = entry.linkedMain,
+                gearIssueCount = entry.gearIssueCount,
+                gearAuditAt = entry.gearAuditAt,
             }
         end
     end
