@@ -35,12 +35,29 @@ fi
 echo "Installing GuildCoreMatrix to $DEST_PATH"
 mkdir -p "$DEST_PATH"
 
-rsync -av --delete \
+rsync -av --delete --delete-excluded \
     --exclude ".git/" \
+    --exclude ".github/" \
     --exclude ".gemini/" \
     --exclude ".cursor/" \
-    --exclude "AGENTS.md" \
+    --exclude ".idea/" \
+    --exclude ".vscode/" \
+    --exclude "node_modules/" \
+    --exclude "dist/" \
+    --exclude "scripts/" \
+    --exclude "docs/" \
     --exclude "install.sh" \
+    --exclude "package.sh" \
+    --exclude "package.json" \
+    --exclude "package-lock.json" \
+    --exclude "changelog.config.mjs" \
+    --exclude "changelog.context.json" \
+    --exclude "AGENTS.md" \
+    --exclude "README.md" \
+    --exclude "CurseForge-description.md" \
+    --exclude "CHANGELOG.md" \
+    --exclude ".DS_Store" \
+    --exclude ".gitignore" \
     "$SOURCE_PATH" "$DEST_PATH"
 
 echo "Done. /reload in-game."

@@ -13,7 +13,7 @@ alwaysApply: true
 /Volumes/so/World of Warcraft/_anniversary_/Interface/AddOns/GuildCoreMatrix
 ```
 
-Excludes: `.git/`, `.gemini/`, `.cursor/`, `install.sh`.
+Excludes dev and packaging junk (aligned with `.pkgmeta` where it applies): `.git/`, `.github/`, `.gemini/`, `.cursor/`, editor folders, `node_modules/`, `dist/`, `scripts/`, `docs/`, npm/changelog config files, `package.sh`, `install.sh`, markdown dev files (`README.md`, `AGENTS.md`, `CurseForge-description.md`, `CHANGELOG.md`), `.DS_Store`, `.gitignore`. Uses `rsync --delete --delete-excluded` so a second run **removes** those paths from the AddOns copy if they were synced earlier.
 
 After running it, use `/reload` in-game (or `/console reloadui`) to pick up
 changes. For TOC or SavedVariables changes, fully exit and relaunch the
