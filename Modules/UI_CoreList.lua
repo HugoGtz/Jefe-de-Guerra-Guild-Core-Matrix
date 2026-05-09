@@ -16,6 +16,7 @@ local UI = {
         META_Y = -44,
         SCHED_Y = -72,
         INVITE_BTN_W = 84,
+        AUDIT_REQ_BTN_W = 96,
         EDIT_BTN_W = 60,
         TITLE_LEADER_MAX_W = 130,
         COMP_MAX_W = 110,
@@ -328,6 +329,13 @@ function CoreCardMixin:Build()
     self.inviteBtn = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
     self.inviteBtn:SetSize(UI.SIZE.INVITE_BTN_W, 18)
     self.inviteBtn:SetPoint("TOPRIGHT", -UI.SIZE.CARD_PADDING, UI.SIZE.TITLE_Y)
+
+    self.auditCoreBtn = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
+    self.auditCoreBtn:SetSize(UI.SIZE.AUDIT_REQ_BTN_W, 18)
+    self.auditCoreBtn:SetPoint("RIGHT", self.inviteBtn, "LEFT", -4, 0)
+    self.auditCoreBtn:SetPoint("TOP", self.inviteBtn, "TOP", 0, 0)
+    self.auditCoreBtn:Hide()
+
     self.count = self:CreateFontString(nil, "OVERLAY", UI.FONT.COUNT)
     self.count:SetTextColor(unpack(Theme.BRAND_GOLD))
     self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
@@ -473,6 +481,7 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
         self.title:SetPoint("RIGHT", self.count, "LEFT", -10, 0)
         self.warning:SetText("")
         self.inviteBtn:Hide()
+        self.auditCoreBtn:Hide()
         self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
         self.scheduleText:SetText("")
         self.editScheduleBtn:Hide()
@@ -530,7 +539,35 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
 
         local coreKey = ns.Schedule and ns.Schedule:CoreKey(typeCode, coreId or 0) or nil
 
-        self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
+        local me = UnitName("player")
+        local nk = me and Ambiguate(me, "none")
+        local canAuditReq = IsInGuild() and coreId and ns.GearAudit and ns.GearAudit.BroadcastCoreAuditRequest and nk and (
+            (ns.Notes and ns.Notes:CanEditUI()) or
+            (ns.Notes and ns.Notes.IsLead and ns.Notes:IsLead(nk, typeCode, coreId))
+        )
+        if canAuditReq then
+            self.auditCoreBtn:Show()
+            self.auditCoreBtn:SetText(ns.L.BTN_AUDIT_CORE)
+            self.count:SetPoint("RIGHT", self.auditCoreBtn, "LEFT", -8, 0)
+            local tc, cid = typeCode, coreId
+            self.auditCoreBtn:SetScript("OnEnter", function(btn)
+                GameTooltip:SetOwner(btn, "ANCHOR_LEFT")
+                GameTooltip:SetText(ns.L.AUDIT_CORE_TOOLTIP_TITLE, 1, 1, 1)
+                GameTooltip:AddLine(ns.L.AUDIT_CORE_TOOLTIP_BODY, 0.75, 0.75, 0.8, true)
+                GameTooltip:Show()
+            end)
+            self.auditCoreBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            self.auditCoreBtn:SetScript("OnClick", function()
+                if ns.GearAudit and ns.GearAudit.BroadcastCoreAuditRequest then
+                    ns.GearAudit:BroadcastCoreAuditRequest(tc, cid)
+                end
+                local label = tc == "B" and ns.L.LABEL_BENCH or string.format("%s %d", ns.L.LABEL_CORE, cid)
+                print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.AUDIT_CORE_SENT, label))
+            end)
+        else
+            self.auditCoreBtn:Hide()
+            self.count:SetPoint("RIGHT", self.inviteBtn, "LEFT", -8, 0)
+        end
 
         local nextSlot = nil
         if coreKey and ns.Schedule then
@@ -788,7 +825,7 @@ function ns.UI:RefreshCoreList()
                         card:SetPoint("TOPLEFT", Content, "TOPLEFT", 2, yOffset)
                         card:SetPoint("RIGHT", Content, "TOPLEFT", panelWidth, 0)
                         card:Update(typeCode, coreId, filtered, {
-                            collapseKey = string.format("%s%d", typeCode, coreId),
+                            collapseKey = ns.Schedule:CoreKey(typeCode, coreId),
                         })
                         yOffset = yOffset - card:GetHeight() - UI.SPACING.CARD
                         renderedAny = true

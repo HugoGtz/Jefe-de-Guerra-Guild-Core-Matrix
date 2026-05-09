@@ -41,6 +41,7 @@ local function SnapshotMigrationState()
     return {
         schedules = DeepCopy(GCM_Sync.schedules),
         collapsed = DeepCopy(GCM_Settings.collapsed),
+        coreRaidPrefs = DeepCopy(GCM_Sync.coreRaidPrefs),
     }
 end
 
@@ -52,6 +53,10 @@ local function RestoreMigrationState(snap)
     wipe(GCM_Settings.collapsed)
     for k, v in pairs(snap.collapsed) do
         GCM_Settings.collapsed[k] = v
+    end
+    wipe(GCM_Sync.coreRaidPrefs)
+    for k, v in pairs(snap.coreRaidPrefs or {}) do
+        GCM_Sync.coreRaidPrefs[k] = DeepCopy(v)
     end
 end
 
@@ -90,6 +95,21 @@ function ns.Database:MigrateLegacyCoreKeys()
             end
         end
         GCM_Settings.collapsed = nextCollapsed
+    end
+    local prefs = GCM_Sync.coreRaidPrefs
+    if type(prefs) == "table" then
+        local snap = {}
+        for k, v in pairs(prefs) do snap[k] = v end
+        wipe(prefs)
+        local keys = {}
+        for k in pairs(snap) do keys[#keys + 1] = k end
+        table.sort(keys)
+        for _, k in ipairs(keys) do
+            local nk = LegacyCoreKeyToC(k)
+            if not prefs[nk] then
+                prefs[nk] = DeepCopy(snap[k])
+            end
+        end
     end
 end
 

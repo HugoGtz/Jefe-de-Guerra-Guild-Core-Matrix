@@ -1,9 +1,17 @@
 package-as: GuildCoreMatrix
 enable-nolib-creation: no
 
+manual-changelog:
+    filename: CHANGELOG.md
+
 ignore:
     - install.sh
     - package.sh
     - scripts
     - dist
     - AGENTS.md
+    - node_modules
+    - package.json
+    - package-lock.json
+    - changelog.config.mjs
+    - changelog.context.json

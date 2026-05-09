@@ -239,6 +239,7 @@ function ns.Scanner:GetMembersForCore(typeCode, coreId)
                 hasConflict = list and CountKeys(list) > 1,
                 conflictCount = list and CountKeys(list) or 0,
                 linkedMain = entry.linkedMain,
+                gearIssues = entry.gearIssues,
                 gearIssueCount = entry.gearIssueCount,
                 gearAuditAt = entry.gearAuditAt,
             }
@@ -280,6 +281,7 @@ function ns.Scanner:GetUnassignedMembers()
                 lastOnline = entry.lastOnline,
                 role = nil,
                 linkedMain = entry.linkedMain,
+                gearIssues = entry.gearIssues,
                 gearIssueCount = entry.gearIssueCount,
                 gearAuditAt = entry.gearAuditAt,
             }

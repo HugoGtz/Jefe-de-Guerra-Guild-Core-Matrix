@@ -470,8 +470,27 @@ function MemberRowMixin:ShowTooltip()
     if m.linkedMain then
         GameTooltip:AddLine(string.format(ns.L.TOOLTIP_ALT_OF, m.linkedMain), 0.72, 0.82, 0.95)
     end
-    if m.gearIssueCount and m.gearIssueCount > 0 then
-        GameTooltip:AddLine(string.format(ns.L.TOOLTIP_GEAR_AUDIT, m.gearIssueCount), 0.95, 0.65, 0.35)
+    do
+        local cnt = m.gearIssueCount or 0
+        local issues = m.gearIssues
+        if (not issues or #issues == 0) and cnt > 0 and ns.GearAudit and ns.GearAudit.GetIssuesForMember then
+            issues = select(1, ns.GearAudit:GetIssuesForMember(m.name))
+        end
+        if issues and #issues > 0 then
+            cnt = #issues
+        end
+        if cnt > 0 then
+            GameTooltip:AddLine(string.format(ns.L.TOOLTIP_GEAR_AUDIT, cnt), 0.95, 0.65, 0.35)
+            if issues and #issues > 0 then
+                local cap = 15
+                for i = 1, math.min(#issues, cap) do
+                    GameTooltip:AddLine("|cffccaa88  •|r " .. ns.GearAudit:IssueLabel(issues[i]), 0.82, 0.76, 0.68, false)
+                end
+                if #issues > cap then
+                    GameTooltip:AddLine(string.format(ns.L.DASH_AUDIT_MORE, #issues - cap), 0.5, 0.5, 0.55, false)
+                end
+            end
+        end
     end
     if m.lead then
         GameTooltip:AddLine(ns.UI:GetRaidLeadIcon() .. " |cffffd100" .. ns.L.LEADER_LABEL .. "|r", 1, 1, 1)

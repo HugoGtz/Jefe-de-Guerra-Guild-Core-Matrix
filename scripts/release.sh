@@ -22,9 +22,26 @@ toc_matches_head() {
   [[ -z "$(git status --porcelain -- "$TOC")" ]]
 }
 
+run_release_changelog() {
+  local ver="$1"
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "WARN: npm not found; skipping CHANGELOG.md (run: npm ci && npm run changelog:full)." >&2
+    return 1
+  fi
+  if [[ ! -f "$ROOT/package.json" ]]; then
+    return 1
+  fi
+  (
+    cd "$ROOT"
+    [[ -d node_modules ]] || npm ci
+    npm pkg set "version=${ver}"
+    npm run changelog:full
+  )
+}
+
 usage() {
   echo "usage: $0 [options] [patch | minor | major | set X.Y.Z]" >&2
-  echo "  Default (not --tag-only): bump TOC → commit TOC → tag vX.Y.Z → push HEAD → push tag (needs clean tree)." >&2
+  echo "  Default (not --tag-only): bump TOC → commit TOC → changelog (npm) → tag vX.Y.Z → push (needs clean tree)." >&2
   echo "  --no-push        same but stop before git push (local commit + tag only)." >&2
   echo "  --bump-only      only edit GuildCoreMatrix.toc (no git)." >&2
   echo "  --tag-only       tag current committed TOC on HEAD; default no push; use --push to publish." >&2
@@ -190,8 +207,18 @@ fi
 apply_toc_version "$NEW_VER"
 git add GuildCoreMatrix.toc
 git commit -m "chore: release $NEW_VER"
+if run_release_changelog "$NEW_VER"; then
+  git add CHANGELOG.md package.json
+  if git diff --cached --quiet; then
+    :
+  else
+    git commit -m "docs: update changelog for $NEW_VER [skip ci]"
+  fi
+else
+  echo "WARN: Release continues without changelog commit." >&2
+fi
 git tag -a "$TAG" -m "Release GuildCoreMatrix $NEW_VER"
-echo "Released $CURRENT -> $NEW_VER (commit + tag $TAG at $(git rev-parse --short HEAD))"
+echo "Released $CURRENT -> $NEW_VER (commit(s) + tag $TAG at $(git rev-parse --short HEAD))"
 
 if [[ "$DO_PUSH" -eq 1 ]]; then
   git push origin HEAD

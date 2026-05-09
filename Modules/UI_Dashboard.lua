@@ -12,7 +12,7 @@ local TARGET_C  = 25
 local MainFrame = ns.UI.MainFrame
 local FilterBar = ns.UI.FilterBar
 
-local TOOLS_H = 122
+local TOOLS_H = 198
 
 local Panel = CreateFrame("ScrollFrame", "GCM_DashPanel", MainFrame, "UIPanelScrollFrameTemplate")
 Panel:SetPoint("TOPLEFT",     FilterBar, "BOTTOMLEFT",  0, -4)
@@ -35,6 +35,7 @@ ToolsBar:SetBackdrop({
 ToolsBar:SetBackdropColor(unpack(Theme.BG_PANEL))
 ToolsBar:SetBackdropBorderColor(unpack(Theme.BORDER_MAIN))
 ToolsBar:Hide()
+if ToolsBar.SetClipsChildren then ToolsBar:SetClipsChildren(true) end
 ns.UI.DashToolsBar = ToolsBar
 
 local toolsHdr = ToolsBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -60,9 +61,17 @@ local btnGearScan = CreateFrame("Button", nil, ToolsBar, "UIPanelButtonTemplate"
 btnGearScan:SetSize(108, 22)
 btnGearScan:SetPoint("TOPLEFT", altStatus, "BOTTOMLEFT", 0, -8)
 
-local auditBody = ToolsBar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-auditBody:SetPoint("TOPLEFT", btnGearScan, "BOTTOMLEFT", 0, -6)
-auditBody:SetPoint("RIGHT", ToolsBar, "RIGHT", -12, 0)
+local auditScroll = CreateFrame("ScrollFrame", "GCM_DashAuditScroll", ToolsBar, "UIPanelScrollFrameTemplate")
+auditScroll:SetPoint("TOPLEFT", btnGearScan, "BOTTOMLEFT", 0, -6)
+auditScroll:SetPoint("BOTTOMRIGHT", ToolsBar, "BOTTOMRIGHT", -28, 10)
+
+local auditContent = CreateFrame("Frame", nil, auditScroll)
+auditContent:SetSize(1, 1)
+auditScroll:SetScrollChild(auditContent)
+
+local auditBody = auditContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+auditBody:SetPoint("TOPLEFT", auditContent, "TOPLEFT", 0, 0)
+auditBody:SetPoint("RIGHT", auditContent, "RIGHT", 0, 0)
 auditBody:SetJustifyH("LEFT")
 auditBody:SetJustifyV("TOP")
 auditBody:SetWordWrap(true)
@@ -122,6 +131,18 @@ local function RefreshDashTools()
     else
         altStatus:SetText(ns.L.DASH_ALT_NONE)
     end
+    if auditScroll and auditContent then
+        local iw = auditScroll:GetWidth()
+        if (not iw or iw < 24) and ToolsBar.GetWidth then
+            local tw = ToolsBar:GetWidth()
+            if tw and tw > 40 then
+                iw = tw - 36
+            end
+        end
+        if iw and iw > 12 then
+            auditContent:SetWidth(math.max(1, iw - 6))
+        end
+    end
     local issues = ns.GearAudit and select(1, ns.GearAudit:GetLastPersisted())
     if issues == nil then
         auditBody:SetText(ns.L.DASH_AUDIT_NEVER)
@@ -137,6 +158,13 @@ local function RefreshDashTools()
             local tail = n > 10 and string.format(ns.L.DASH_AUDIT_MORE, n - 10) or ""
             auditBody:SetText(table.concat(lines, "\n") .. tail)
         end
+    end
+    if auditContent and auditBody then
+        local sh = auditBody:GetStringHeight()
+        auditContent:SetHeight(math.max(sh + 6, 1))
+    end
+    if auditScroll then
+        auditScroll:SetVerticalScroll(0)
     end
 end
 

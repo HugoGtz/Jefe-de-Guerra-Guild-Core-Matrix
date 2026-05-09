@@ -740,6 +740,10 @@ local function CacheToMember(name, entry)
         lfgDetail    = entry.lfgDetail or "",
         lfgMode      = entry.lfgMode   or "LFG",
         lfgAge       = age,
+        linkedMain   = entry.linkedMain,
+        gearIssues   = entry.gearIssues,
+        gearIssueCount = entry.gearIssueCount,
+        gearAuditAt  = entry.gearAuditAt,
     }
 end
 

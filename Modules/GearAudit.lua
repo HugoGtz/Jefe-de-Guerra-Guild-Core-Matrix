@@ -208,6 +208,50 @@ function ns.GearAudit:OnReceivePayload(payload, sender)
     if ns.UI and ns.UI.Refresh then ns.UI:Refresh() end
 end
 
+function ns.GearAudit:IsPlayerInCore(typeCode, coreId)
+    if not IsInGuild() or not ns.Cache then return false end
+    local me = UnitName("player")
+    if not me then return false end
+    local nk = Ambiguate(me, "none")
+    local entry = ns.Cache[nk]
+    if not entry or not entry.cores or not typeCode then return false end
+    local list = entry.cores[typeCode]
+    if not list then return false end
+    local cid = tonumber(coreId) or coreId
+    return list[cid] ~= nil or list[coreId] ~= nil
+end
+
+function ns.GearAudit:OnAuditReqCore(payload)
+    if not IsInGuild() then return end
+    local typeCode, sid = payload:match("^([^|]+)|([^|]+)$")
+    if not typeCode or typeCode == "" or not sid or sid == "" then return end
+    local coreId = tonumber(sid) or sid
+    if not self:IsPlayerInCore(typeCode, coreId) then return end
+    local delay = 0
+    if math and math.random then
+        delay = math.random(0, 200) / 100
+    end
+    local tc, cid = typeCode, coreId
+    if C_Timer and C_Timer.After then
+        C_Timer.After(delay, function()
+            if not IsInGuild() then return end
+            if not (ns.GearAudit and ns.GearAudit.IsPlayerInCore and ns.GearAudit:IsPlayerInCore(tc, cid)) then return end
+            if ns.GearAudit and ns.GearAudit.PersistAndReturn then
+                ns.GearAudit:PersistAndReturn()
+            end
+        end)
+    elseif ns.GearAudit and ns.GearAudit.PersistAndReturn then
+        ns.GearAudit:PersistAndReturn()
+    end
+end
+
+function ns.GearAudit:BroadcastCoreAuditRequest(typeCode, coreId)
+    if not IsInGuild() then return end
+    if not ns.Comms or not ns.Comms.Broadcast then return end
+    local payload = string.format("%s|%s", tostring(typeCode or ""), tostring(coreId or ""))
+    ns.Comms:Broadcast("AUDIT_REQ_CORE", payload, true)
+end
+
 function ns.GearAudit:OnAuditReq()
     local nk = NameKey(UnitName("player") or "")
     if nk == "" then return end
@@ -292,6 +336,9 @@ function ns.GearAudit:Init()
     end)
     ns.Comms:RegisterHandler("AUDIT_REQ", function()
         ns.GearAudit:OnAuditReq()
+    end)
+    ns.Comms:RegisterHandler("AUDIT_REQ_CORE", function(payload)
+        ns.GearAudit:OnAuditReqCore(payload or "")
     end)
     if C_Timer and C_Timer.After then
         C_Timer.After(6, function()
