@@ -1,3 +1,9 @@
+## [1.8.0](https://github.com/HugoGtz/Jefe-de-Guerra-Guild-Core-Matrix/compare/v1.7.0...v1.8.0) (2026-05-09)
+
+
+### Features
+
+* add comprehensive gear audit system with core-specific requests, enhanced UI tooltips, and automated changelog generation
 
 ## [1.7.0](https://github.com/HugoGtz/Jefe-de-Guerra-Guild-Core-Matrix/compare/v1.6.0...v1.7.0) (2026-05-08)
 

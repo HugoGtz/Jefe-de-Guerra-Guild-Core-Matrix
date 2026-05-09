@@ -1,6 +1,6 @@
 {
   "name": "guildcorematrix",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "description": "WoW TBC Anniversary addon — guild core roster (Jefe de Guerra / Guild Core Matrix).",
   "scripts": {
