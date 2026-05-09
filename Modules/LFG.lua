@@ -156,7 +156,6 @@ function ns.LFG:SetMine(tags, detail, mode)
         for i = 1, #tags do if tags[i] ~= prevTags[i] then same = false; break end end
     end
     if same and detail == prevDetail and mode == prevMode then
-        print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_NO_CHANGE)
         return false
     end
     self:Set(nk, tags, detail, mode, { broadcast = true })
@@ -169,7 +168,6 @@ function ns.LFG:ClearMine()
     if not me then return false end
     local nk = Ambiguate(me, "none")
     if not ns.Sync or not ns.Sync.lfg or not ns.Sync.lfg[nk] then
-        print(ns.L.BRAND_YELLOW .. " " .. ns.L.LFG_ALREADY_CLEAR)
         return false
     end
     self:Set(nk, {}, "", "LFG", { broadcast = true })

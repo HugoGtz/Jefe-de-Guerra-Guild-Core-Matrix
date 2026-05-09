@@ -9,6 +9,7 @@ local DEFAULTS = {
     frameHeight = 550,
     collapsed = {},
     forceCanWrite = false,
+    chatDebug = false,
 }
 
 local SCHEMA_VERSION = 4
@@ -170,6 +171,10 @@ function ns.Database:Initialize()
     GCM_Sync.meta = GCM_Sync.meta or { version = 1 }
     ns.Sync = GCM_Sync
 
+end
+
+function ns.ChatDebug()
+    return GCM_Settings and GCM_Settings.chatDebug == true
 end
 
 function ns.Database:ApplySchemaUpgrades()

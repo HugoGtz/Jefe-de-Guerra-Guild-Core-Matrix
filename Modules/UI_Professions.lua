@@ -571,7 +571,7 @@ end)
 btnReq:SetScript("OnClick", function()
     if ns.Professions and ns.Professions.RequestSync then
         ns.Professions:RequestSync()
-        print("|cff4ade80GCM:|r Solicitando datos de profesiones a la hermandad...")
+        print(ns.L.BRAND_GREEN .. " " .. ns.L.PROF_SYNC_CHAT)
     end
 end)
 

@@ -373,6 +373,15 @@ SlashCmdList["GCM"] = function(msg)
         return
     end
     local arg = lead
+    if arg == "debug" then
+        GCM_Settings.chatDebug = not GCM_Settings.chatDebug
+        if GCM_Settings.chatDebug then
+            print(ns.L.BRAND_GREEN .. " " .. ns.L.CHAT_DEBUG_ON)
+        else
+            print(ns.L.BRAND .. " " .. ns.L.CHAT_DEBUG_OFF)
+        end
+        return
+    end
     if arg == "migrate" then
         ns.Database:RunManualLegacyCoreKeysMigration()
         return

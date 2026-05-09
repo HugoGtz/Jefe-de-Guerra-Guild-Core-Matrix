@@ -353,15 +353,14 @@ local function ApplyAndWrite(name, mutator)
         if not ns.Notes:CanWrite() then
             print(ns.L.BRAND .. " " .. ns.L.NOTE_NO_PERM)
             print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_NO_PERM_HINT)
+            return false
         else
-            print(ns.L.BRAND_YELLOW .. " " .. string.format("Diff officer: \"%s\" -> \"%s\"", officerNote, newOfficerNote))
             GuildRosterSetOfficerNote(idx, newOfficerNote)
             wroteOfficer = true
         end
     end
 
     if not wroteOfficer then
-        print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_NO_CHANGE)
         return false
     end
 
@@ -392,7 +391,7 @@ local function ApplyAndWrite(name, mutator)
                     print(ns.L.BRAND_YELLOW .. " " .. ns.L.NOTE_REJECTED_HINT)
                     if ns.Scanner.ResetThrottle then ns.Scanner:ResetThrottle() end
                     if ns.Scanner.ParseGuildNotes then ns.Scanner:ParseGuildNotes() end
-                else
+                elseif ns.ChatDebug and ns.ChatDebug() then
                     print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.NOTE_VERIFIED, name))
                 end
             end)
@@ -414,7 +413,6 @@ end
 function ns.Notes:SetLootMasterInNote(name, typeCode, coreId, enabled)
     if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
-    print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: LOOTMASTER %s %s%d -> %s", name, typeCode, coreId, tostring(enabled)))
     return ApplyAndWrite(name, function(entries)
         for _, e in ipairs(entries) do
             if e.typeCode == typeCode and e.coreId == coreId then
@@ -429,7 +427,6 @@ end
 function ns.Notes:Assign(name, typeCode, coreId)
     if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
-    print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: ASSIGN %s -> %s%d", name, typeCode, coreId))
     return ApplyAndWrite(name, function(entries)
         for _, e in ipairs(entries) do
             if e.typeCode == typeCode and e.coreId == coreId then
@@ -444,7 +441,6 @@ end
 function ns.Notes:Unassign(name, typeCode, coreId)
     if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
-    print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: UNASSIGN %s from %s%d", name, typeCode, coreId))
     return ApplyAndWrite(name, function(entries)
         local out = {}
         for _, e in ipairs(entries) do
@@ -459,7 +455,6 @@ end
 function ns.Notes:SetRole(name, typeCode, coreId, role)
     if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
-    print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: SETROLE %s %s%d -> %s", name, typeCode, coreId, tostring(role)))
     return ApplyAndWrite(name, function(entries)
         for _, e in ipairs(entries) do
             if e.typeCode == typeCode and e.coreId == coreId then
@@ -494,7 +489,6 @@ end
 function ns.Notes:DemoteLead(name, typeCode, coreId)
     if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
-    print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: DEMOTE_LEAD %s %s%d", name, typeCode, coreId))
     return ApplyAndWrite(name, function(entries)
         for _, e in ipairs(entries) do
             if e.typeCode == typeCode and e.coreId == coreId then
@@ -509,7 +503,6 @@ end
 function ns.Notes:PromoteLead(name, typeCode, coreId)
     if typeCode == "B" then coreId = 1 end
     coreId = tonumber(coreId)
-    print(ns.L.BRAND_YELLOW .. " " .. string.format("Action: PROMOTE_LEAD %s %s%d", name, typeCode, coreId))
     return ApplyAndWrite(name, function(entries)
         for _, e in ipairs(entries) do
             if e.typeCode == typeCode and e.coreId == coreId then

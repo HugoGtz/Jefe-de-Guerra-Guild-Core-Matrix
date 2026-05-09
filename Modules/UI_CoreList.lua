@@ -650,7 +650,7 @@ function CoreCardMixin:Update(typeCode, coreId, members, opts)
             if ns.InviteTools and ns.InviteTools.InviteOnlineMembers then
                 invited, onlineInCore, permBlocked, diag = ns.InviteTools:InviteOnlineMembers(fullMembers)
             end
-            if invited == 0 and diag then
+            if invited == 0 and diag and ns.InviteTools and ns.InviteTools.PrintInviteDiagnostics then
                 ns.InviteTools:PrintInviteDiagnostics(coreId, diag, permBlocked)
             end
             if permBlocked then

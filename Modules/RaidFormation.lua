@@ -1,6 +1,8 @@
 local addonName, ns = ...
 ns.RaidFormation = ns.RaidFormation or {}
 
+local GROUP_HOME = LE_PARTY_CATEGORY_HOME or 1
+
 local pending
 local rosterDebounceGen = 0
 local pulseGen = 0
@@ -24,21 +26,25 @@ local function RaidUnitNameKey(u)
 end
 
 local function PlayerIsLeader()
-    if UnitIsGroupLeader and UnitIsGroupLeader("player") then return true end
+    if UnitIsGroupLeader and UnitIsGroupLeader("player", GROUP_HOME) then return true end
     if UnitIsPartyLeader and UnitIsPartyLeader("player") then return true end
     return false
 end
 
+local function SubgroupOthersCount()
+    if GetNumSubgroupMembers then return GetNumSubgroupMembers(GROUP_HOME) or 0 end
+    if GetNumPartyMembers then return GetNumPartyMembers() or 0 end
+    return 0
+end
+
 local function InAnyGroup()
-    if IsInGroup and IsInGroup() then return true end
-    if IsInRaid and IsInRaid() then return true end
-    local pm = GetNumPartyMembers and GetNumPartyMembers() or 0
-    return pm > 0
+    if IsInGroup and IsInGroup(GROUP_HOME) then return true end
+    if IsInRaid and IsInRaid(GROUP_HOME) then return true end
+    return SubgroupOthersCount() > 0
 end
 
 local function PartyHasAnotherMember()
-    local pm = GetNumPartyMembers and GetNumPartyMembers() or 0
-    if pm >= 1 then return true end
+    if SubgroupOthersCount() >= 1 then return true end
     if UnitExists("party1") then return true end
     return false
 end
@@ -51,7 +57,7 @@ local function GetConvertToRaidFn()
 end
 
 local function ConvertPartyToRaid()
-    if IsInRaid and IsInRaid() then return true end
+    if IsInRaid and IsInRaid(GROUP_HOME) then return true end
     if not PlayerIsLeader() then return false end
     if not PartyHasAnotherMember() then return false end
     local fn = GetConvertToRaidFn()
@@ -78,13 +84,13 @@ local function IsRaidAssistantUnit(unit)
     if UnitIsGroupAssistant and UnitIsGroupAssistant(unit) then return true end
     if UnitIsRaidAssistant and UnitIsRaidAssistant(unit) == true then return true end
     if UnitIsRaidOfficer and UnitIsGroupLeader then
-        return UnitIsRaidOfficer(unit) and not UnitIsGroupLeader(unit)
+        return UnitIsRaidOfficer(unit) and not UnitIsGroupLeader(unit, GROUP_HOME)
     end
     return false
 end
 
 local function IterateRaidUnits(fn)
-    if not IsInRaid or not IsInRaid() then return end
+    if not IsInRaid or not IsInRaid(GROUP_HOME) then return end
     for i = 1, 40 do
         local u = "raid" .. i
         if UnitExists(u) then
@@ -97,7 +103,7 @@ end
 
 local function RaidUnitForNameKey(nk)
     if not nk or nk == "" then return nil end
-    if not IsInRaid or not IsInRaid() then return nil end
+    if not IsInRaid or not IsInRaid(GROUP_HOME) then return nil end
     for i = 1, 40 do
         local u = "raid" .. i
         if UnitExists(u) then
@@ -111,26 +117,23 @@ end
 local function ApplyAssistPromotions(keys)
     local promoteFn = GetPromoteToAssistantFn()
     if not promoteFn then return end
-    if not IsInRaid or not IsInRaid() then return end
+    if not IsInRaid or not IsInRaid(GROUP_HOME) then return end
     local slot = 0
     IterateRaidUnits(function(u)
         local nk = RaidUnitNameKey(u)
         if nk == "" or not keys[nk] then return end
-        if UnitIsGroupLeader and UnitIsGroupLeader(u) then return end
+        if UnitIsGroupLeader and UnitIsGroupLeader(u, GROUP_HOME) then return end
         if IsRaidAssistantUnit(u) then return end
         slot = slot + 1
         local unitCopy = u
         local delay = (slot - 1) * 0.12
         if C_Timer and C_Timer.After then
             C_Timer.After(delay, function()
-                if UnitExists(unitCopy) then
-                    local name = UnitName(unitCopy)
-                    if name and name ~= "" then promoteFn(name) end
-                end
+                if not UnitExists(unitCopy) then return end
+                promoteFn(unitCopy)
             end)
         else
-            local name = UnitName(u)
-            if name and name ~= "" then promoteFn(name) end
+            promoteFn(u)
         end
     end)
 end
@@ -139,11 +142,12 @@ local function ApplyLootMaster(nk)
     local sm = GetSetLootMethodFn()
     if not sm then return false end
     if not nk or nk == "" then return true end
-    if not IsInRaid or not IsInRaid() then return false end
+    if not IsInRaid or not IsInRaid(GROUP_HOME) then return false end
     if not PlayerIsLeader() then return false end
     local u = RaidUnitForNameKey(nk)
     if not u then return false end
-    local nm = UnitName(u)  -- Classic API expects plain name, no realm suffix
+    local nm = UnitFullName and UnitFullName(u) or UnitName(u)
+    if not nm or nm == "" then nm = UnitName(u) end
     if not nm or nm == "" then return false end
     sm("master", nm)
     return true
@@ -208,11 +212,12 @@ local function ScheduleFormationPulses(invitedCount)
     local pg = pulseGen
     local delays = { first, first + 2.5, first + 6.5, first + 14.0, first + 25.0, first + 45.0 }
     for i = 1, #delays do
-        local d = delays[i]
-        C_Timer.After(d, function()
-            if pg ~= pulseGen then return end
-            if pending then ns.RaidFormation:RosterTickImmediate() end
-        end)
+        (function(delaySec)
+            C_Timer.After(delaySec, function()
+                if pg ~= pulseGen then return end
+                if pending then ns.RaidFormation:RosterTickImmediate() end
+            end)
+        end)(delays[i])
     end
 end
 
@@ -225,7 +230,7 @@ local function PendingFormationApply()
     local fullMembers = ns.Scanner and ns.Scanner.GetMembersForCore and ns.Scanner:GetMembersForCore(tc, cid) or {}
     local promoteKeys, lootNK = BuildPromoteKeysAndLootNK(pending.coreKey, fullMembers)
 
-    if not IsInRaid or not IsInRaid() then
+    if not IsInRaid or not IsInRaid(GROUP_HOME) then
         if PartyHasAnotherMember() then
             ConvertPartyToRaid()
         end
@@ -234,7 +239,7 @@ local function PendingFormationApply()
 
     if not pending.saidRaid then
         pending.saidRaid = true
-        if ns.L and ns.L.RAID_FORM_CONVERTED then
+        if ns.ChatDebug and ns.ChatDebug() and ns.L and ns.L.RAID_FORM_CONVERTED then
             print(ns.L.BRAND_GREEN .. " " .. ns.L.RAID_FORM_CONVERTED)
         end
     end
@@ -243,7 +248,7 @@ local function PendingFormationApply()
 
     if not pending.saidAssist then
         pending.saidAssist = true
-        if ns.L and ns.L.RAID_FORM_ASSISTS then
+        if ns.ChatDebug and ns.ChatDebug() and ns.L and ns.L.RAID_FORM_ASSISTS then
             print(ns.L.BRAND_GREEN .. " " .. ns.L.RAID_FORM_ASSISTS)
         end
     end
@@ -252,7 +257,7 @@ local function PendingFormationApply()
         if ApplyLootMaster(lootNK) then
             if not pending.saidLoot then
                 pending.saidLoot = true
-                if ns.L and ns.L.RAID_FORM_LOOT then
+                if ns.ChatDebug and ns.ChatDebug() and ns.L and ns.L.RAID_FORM_LOOT then
                     print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.RAID_FORM_LOOT, lootNK))
                 end
             end
@@ -271,7 +276,7 @@ local function WatchIncrementalApply()
     local fullMembers = ns.Scanner and ns.Scanner.GetMembersForCore and ns.Scanner:GetMembersForCore(tc, cid) or {}
     local promoteKeys, lootNK = BuildPromoteKeysAndLootNK(watchCoreKey, fullMembers)
 
-    if not IsInRaid or not IsInRaid() then
+    if not IsInRaid or not IsInRaid(GROUP_HOME) then
         if PartyHasAnotherMember() then
             ConvertPartyToRaid()
         end

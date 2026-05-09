@@ -60,10 +60,10 @@ function ns.Scanner:SyncLootMasterPrefsFromCache()
             local list = holders[key]
             if list and #list > 0 then
                 table.sort(list)
-                GCM_Sync.coreRaidPrefs[key] = { lootMasterNameKey = list[1] }
-                if #list > 1 and ns.L and ns.L.ML_NOTE_CONFLICT then
+                if #list > 1 and ns.L and ns.L.ML_NOTE_CONFLICT and ns.ChatDebug and ns.ChatDebug() then
                     print(ns.L.BRAND_YELLOW .. " " .. string.format(ns.L.ML_NOTE_CONFLICT, key, table.concat(list, ", "), list[1]))
                 end
+                GCM_Sync.coreRaidPrefs[key] = { lootMasterNameKey = list[1] }
             else
                 GCM_Sync.coreRaidPrefs[key] = nil
             end
@@ -181,7 +181,7 @@ function ns.Scanner:ParseGuildNotesNow(opts)
             isScanning = false
 
             if rosterSize > 0 then
-                local chat = opts.verbose == true or prevFound ~= foundCount
+                local chat = opts.verbose == true or (ns.ChatDebug and ns.ChatDebug() and prevFound ~= foundCount)
                 if chat then
                     if foundCount > 0 then
                         print(ns.L.BRAND_GREEN .. " " .. string.format(ns.L.SCAN_SUCCESS, foundCount))

@@ -8,6 +8,8 @@ ns.Locale:Register("enUS", {
     TOOLTIP_TITLE = "|cffff0000GuildCoreMatrix|r\nCore Management",
 
     LOGIN_READY = "Core system ready (UI v%s).",
+    CHAT_DEBUG_ON = "Verbose chat logging on (auto scan when tags change, note verify, invite diagnostics, ML conflicts, raid formation steps). Toggle: |cffffcc00/gcm debug|r",
+    CHAT_DEBUG_OFF = "Verbose chat logging off.",
     SCAN_SUCCESS = "Success: %d members assigned to Cores.",
     SCAN_NO_MATCHES = "No valid [C#] or bench [B] tags in officer notes (legacy [k#/K#/G#] still read until rewritten).",
     ML_NOTE_CONFLICT = "%s: multiple members have :ML in officer notes (%s). Using %s for raid loot automation.",
@@ -140,7 +142,7 @@ ns.Locale:Register("enUS", {
     LANG_USAGE = "Usage: /gcmlang <code> | /gcmlang reset",
     LANG_RESET = "Language override cleared. Detected: %s.",
 
-    SLASH_USAGE = "Usage: /gcm — main window includes role strip and roster note toggle | /gcm officer on|off|auto | /gcm reset | /gcm forcewrite | /gcm perms | /gcm spec <abbrev> | /gcm role T|H|D|clear | /gcm alt <main name>|clear | /gcm pubnote push|restore|force|status | /gcm lfg ...",
+    SLASH_USAGE = "Usage: /gcm — main window includes role strip and roster note toggle | /gcm debug — toggle extra chat logging for troubleshooting | /gcm officer on|off|auto | /gcm reset | /gcm forcewrite | /gcm perms | /gcm spec <abbrev> | /gcm role T|H|D|clear | /gcm alt <main name>|clear | /gcm pubnote push|restore|force|status | /gcm lfg ...",
 
     LFG_TAB_CORES = "Cores",
     LFG_TAB_LOOKING = "LFG",
@@ -207,6 +209,7 @@ ns.Locale:Register("enUS", {
     PROF_MEMBERS = "Members",
     PROF_RECIPES_TITLE = "Known recipes",
     PROF_REQ_SYNC = "Request update",
+    PROF_SYNC_CHAT = "Requested profession data from the guild.",
     PROF_EMPTY_ROSTER = "No guild roster yet.",
     PROF_NO_SELECTION = "Select a member.",
     PROF_EMPTY_RECIPES = "No recipes recorded. They may not use the addon or have not opened a profession window.",

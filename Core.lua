@@ -41,7 +41,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if ns.GearAudit and ns.GearAudit.Init then ns.GearAudit:Init() end
         if ns.RaidFormation and ns.RaidFormation.Init then ns.RaidFormation:Init() end
     elseif event == "PLAYER_LOGIN" then
-        print(ns.L.BRAND .. " " .. string.format(ns.L.LOGIN_READY, ns.addonVersion or "?"))
+        if ns.ChatDebug and ns.ChatDebug() then
+            print(ns.L.BRAND .. " " .. string.format(ns.L.LOGIN_READY, ns.addonVersion or "?"))
+        end
         if GuildRoster then GuildRoster() end
         ns.Scanner:ParseGuildNotes()
         if ns.Schedule and ns.Schedule.RequestSync then ns.Schedule:RequestSync() end
@@ -53,7 +55,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if ns.GearAudit and ns.GearAudit.RequestSync then ns.GearAudit:RequestSync() end
         if C_Timer and C_Timer.After then
             C_Timer.After(3, function()
-                if ns.PublicNote and ns.PublicNote.Reapply then ns.PublicNote:Reapply() end
+                if ns.PublicNote and ns.PublicNote.Reapply then ns.PublicNote:Reapply(true) end
             end)
             C_Timer.After(5, function()
                 if ns.Comms and ns.Comms.PushHello then ns.Comms:PushHello() end

@@ -8,6 +8,8 @@ ns.Locale:Register("esMX", {
     TOOLTIP_TITLE = "|cffff0000Jefe de Guerra|r\nGestión de Cores",
 
     LOGIN_READY = "Sistema de Cores listo (UI v%s).",
+    CHAT_DEBUG_ON = "Registro de chat detallado activado (escaneo automático si cambian etiquetas, verificación de nota, diagnóstico de invitaciones, conflictos ML, pasos de formación). Alternar: |cffffcc00/gcm debug|r",
+    CHAT_DEBUG_OFF = "Registro de chat detallado desactivado.",
     SCAN_SUCCESS = "Listo: %d miembros asignados a Cores.",
     SCAN_NO_MATCHES = "No hay etiquetas [C#] o de banca [B] válidas en notas de oficial (las viejas [k#/K#/G#] siguen leyéndose hasta reescribirlas).",
     ML_NOTE_CONFLICT = "%s: varios miembros tienen :ML en las notas de oficial (%s). Se usará %s para el botín automático.",
@@ -140,7 +142,7 @@ ns.Locale:Register("esMX", {
     LANG_USAGE = "Uso: /gcmlang <código> | /gcmlang reset",
     LANG_RESET = "Override de idioma eliminado. Detectado: %s.",
 
-    SLASH_USAGE = "Uso: /gcm — ventana con tu rol y nota de hermandad | /gcm officer on|off|auto | /gcm reset | /gcm forcewrite | /gcm perms | /gcm spec <abrev> | /gcm role T|H|D|clear | /gcm alt <nombre main>|clear | /gcm pubnote push|restore|force|status | /gcm lfg ...",
+    SLASH_USAGE = "Uso: /gcm — ventana con tu rol y nota de hermandad | /gcm debug — alternar registro extra en chat para diagnóstico | /gcm officer on|off|auto | /gcm reset | /gcm forcewrite | /gcm perms | /gcm spec <abrev> | /gcm role T|H|D|clear | /gcm alt <nombre main>|clear | /gcm pubnote push|restore|force|status | /gcm lfg ...",
 
     LFG_TAB_CORES = "Cores",
     LFG_TAB_LOOKING = "LFG",
@@ -207,6 +209,7 @@ ns.Locale:Register("esMX", {
     PROF_MEMBERS = "Miembros",
     PROF_RECIPES_TITLE = "Recetas conocidas",
     PROF_REQ_SYNC = "Solicitar actualización",
+    PROF_SYNC_CHAT = "Solicitados datos de profesiones a la hermandad.",
     PROF_EMPTY_ROSTER = "Aún no hay lista de hermandad.",
     PROF_NO_SELECTION = "Selecciona un miembro.",
     PROF_EMPTY_RECIPES = "Sin recetas registradas. Puede que no usen el addon o no hayan abierto un oficio.",

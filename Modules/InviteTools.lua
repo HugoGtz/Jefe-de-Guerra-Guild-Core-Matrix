@@ -2,6 +2,7 @@ local addonName, ns = ...
 ns.InviteTools = ns.InviteTools or {}
 
 local GAP_SEC = 0.35
+local GROUP_HOME = LE_PARTY_CATEGORY_HOME or 1
 
 local function NameKey(name)
     return Ambiguate(name or "", "none")
@@ -19,21 +20,26 @@ local function UnitGroupNameKey(u)
     return Ambiguate(n, "none")
 end
 
+local function SubgroupOthersCount()
+    if GetNumSubgroupMembers then return GetNumSubgroupMembers(GROUP_HOME) or 0 end
+    if GetNumPartyMembers then return GetNumPartyMembers() or 0 end
+    return 0
+end
+
 local function InAnyGroup()
-    if IsInGroup and IsInGroup() then return true end
-    if IsInRaid and IsInRaid() then return true end
-    local pm = GetNumPartyMembers and GetNumPartyMembers() or 0
-    return pm > 0
+    if IsInGroup and IsInGroup(GROUP_HOME) then return true end
+    if IsInRaid and IsInRaid(GROUP_HOME) then return true end
+    return SubgroupOthersCount() > 0
 end
 
 function ns.InviteTools:PlayerCanInvite()
     if not InAnyGroup() then return true end
-    if UnitIsGroupLeader and UnitIsGroupLeader("player") then return true end
+    if UnitIsGroupLeader and UnitIsGroupLeader("player", GROUP_HOME) then return true end
     if UnitIsPartyLeader and UnitIsPartyLeader("player") then return true end
-    if IsInRaid and IsInRaid() then
+    if IsInRaid and IsInRaid(GROUP_HOME) then
         if UnitIsRaidAssistant and UnitIsRaidAssistant("player") then return true end
         if UnitIsRaidOfficer and UnitIsGroupLeader then
-            if UnitIsRaidOfficer("player") and not UnitIsGroupLeader("player") then return true end
+            if UnitIsRaidOfficer("player") and not UnitIsGroupLeader("player", GROUP_HOME) then return true end
         end
     end
     return false
@@ -64,7 +70,7 @@ end
 
 local function AnyKeyMatchesGroup(nameKeys)
     if not InAnyGroup() then return false end
-    if IsInRaid and IsInRaid() then
+    if IsInRaid and IsInRaid(GROUP_HOME) then
         for i = 1, 40 do
             local u = "raid" .. i
             local uk = UnitGroupNameKey(u)
@@ -89,9 +95,9 @@ local function AnyKeyMatchesGroup(nameKeys)
 end
 
 function ns.InviteTools:GetInviteFn()
-    if type(InviteUnit) == "function" then return InviteUnit end
     local cp = C_PartyInfo
     if cp and type(cp.InviteUnit) == "function" then return cp.InviteUnit end
+    if type(InviteUnit) == "function" then return InviteUnit end
     return nil
 end
 
@@ -108,7 +114,9 @@ end
 
 function ns.InviteTools:ResolveInviteToken(rosterOrShort)
     if not rosterOrShort or rosterOrShort == "" then return nil end
-    return rosterOrShort
+    local t = rosterOrShort:match("^%s*(.-)%s*$") or rosterOrShort
+    if not t or t == "" then return nil end
+    return t
 end
 
 function ns.InviteTools:InviteOne(rosterOrShort)
@@ -125,6 +133,7 @@ function ns.InviteTools:InviteOne(rosterOrShort)
 end
 
 function ns.InviteTools:PrintInviteDiagnostics(coreId, diag, permBlocked)
+    if not ns.ChatDebug or not ns.ChatDebug() then return end
     local L = ns.L
     if not L or type(diag) ~= "table" then return end
     local p = ns.L.BRAND_YELLOW .. " "
@@ -208,10 +217,13 @@ function ns.InviteTools:InviteOnlineMembers(members)
     if not diag.hasInviteUnit then return 0, onlineCore, permBlocked, diag end
     if C_Timer and C_Timer.After then
         for i = 1, total do
-            local tok = tokens[i]
-            C_Timer.After((i - 1) * GAP_SEC, function()
-                ns.InviteTools:DispatchInvite(tok)
-            end)
+            (function(invIdx)
+                local tok = tokens[invIdx]
+                if not tok or tok == "" then return end
+                C_Timer.After((invIdx - 1) * GAP_SEC, function()
+                    ns.InviteTools:DispatchInvite(tok)
+                end)
+            end)(i)
         end
     else
         for i = 1, total do

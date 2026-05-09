@@ -133,28 +133,27 @@ function ns.Professions:StorePlayerState(nameKey, lines, spellSet, updatedAt, op
 end
 
 function ns.Professions:OnReceivePayload(payload, sender)
-    -- Always log incoming messages (not gated behind _debug)
-    print(string.format("|cffffff00[GCM-PROF]|r PROF_SET recibido de '%s' (%d bytes)", tostring(sender), #payload))
+    DBG("PROF_SET recibido de '%s' (%d bytes)", tostring(sender), #payload)
 
     local parts = {}
     for p in (payload .. "|"):gmatch("([^|]*)|") do parts[#parts + 1] = p end
 
-    print(string.format("|cffffff00[GCM-PROF]|r  -> %d partes: [1]='%s' [2]='%s' [3]='%s...' [4]='%s'",
+    DBG(" -> %d partes: [1]='%s' [2]='%s' [3]='%s...' [4]='%s'",
         #parts,
-        tostring(parts[1]):sub(1,20),
-        tostring(parts[2]):sub(1,20),
-        tostring(parts[3]):sub(1,10),
-        tostring(parts[4]):sub(1,15)))
+        tostring(parts[1]):sub(1, 20),
+        tostring(parts[2]):sub(1, 20),
+        tostring(parts[3]):sub(1, 10),
+        tostring(parts[4]):sub(1, 15))
 
     if #parts < 4 then
-        print("|cffff4444[GCM-PROF]|r  -> DESCARTADO: menos de 4 partes")
+        DBG(" -> DESCARTADO: menos de 4 partes")
         return
     end
 
     local nk = NameKey(parts[1])
     local senderKey = NameKey(sender)
     if nk ~= senderKey then
-        print(string.format("|cffff4444[GCM-PROF]|r  -> DESCARTADO: nameKey='%s' != sender='%s'", nk, senderKey))
+        DBG(" -> DESCARTADO: nameKey='%s' != sender='%s'", nk, senderKey)
         return
     end
 
@@ -182,13 +181,12 @@ function ns.Professions:OnReceivePayload(payload, sender)
         for s in parts[5]:gmatch("([^,]+)") do table.insert(specs, s) end
     end
 
-    print(string.format("|cff4ade80[GCM-PROF]|r  -> OK: %d profs, %d recetas, %d specs para '%s'",
-        #lines, sCount, #specs, nk))
+    DBG(" -> OK: %d profs, %d recetas, %d specs para '%s'", #lines, sCount, #specs, nk)
 
     self:StorePlayerState(nk, lines, spells, parts[4], { specs = specs, broadcast = false })
 
     self.syncCount = (self.syncCount or 0) + 1
-    print(string.format("|cff4ade80GCM:|r Datos de |cffffd100%s|r actualizados (|cffffffff%d|r recetas).", nk, sCount))
+    DBG("Datos de %s actualizados (%d recetas).", nk, sCount)
 end
 
 function ns.Professions:ReadSkillbookPrimaryLines()
@@ -366,11 +364,13 @@ function ns.Professions:_RunOpenTradeSkillSnapshotQueue(queue, gen)
     local step = 1.25
     if n >= 2 and C_Timer and C_Timer.After then
         for i = 2, n do
-            local tid = queue[i]
-            C_Timer.After((i - 1) * step, function()
-                if ns.Professions._snapshotGen ~= gen then return end
-                ns.Professions:OpenCraftingTradeSkillUI(tid)
-            end)
+            (function(idx)
+                local tid = queue[idx]
+                C_Timer.After((idx - 1) * step, function()
+                    if ns.Professions._snapshotGen ~= gen then return end
+                    ns.Professions:OpenCraftingTradeSkillUI(tid)
+                end)
+            end)(i)
         end
     end
     if not C_Timer or not C_Timer.After then return end
@@ -523,7 +523,6 @@ function ns.Professions:Init()
         elseif msg == "dump" then
             ns.Professions:DumpDebug()
         elseif msg == "scan" then
-            ns.Professions._debug = true
             print("|cffffff00[GCM-PROF]|r Escaneando profesiones locales...")
             ns.Professions:RequestLocalTradeSkillSnapshot({ force = true })
             ns.Professions:QueueTradeSkillScan()
@@ -946,10 +945,10 @@ function ns.Professions:PerformTradeSkillScan()
 
     if not profId then
         if source == "none" then
-            print("|cffff9900[GCM-PROF]|r Could not identify the open profession. Run /gcmprof tradeskill for details.")
+            DBG("Could not identify the open profession. Run /gcmprof tradeskill for details.")
             profId = 0
         else
-            print(string.format("|cffff9900[GCM-PROF]|r Unknown profession name: '%s'. Storing under Other.", tostring(detectedName)))
+            DBG("Unknown profession name: '%s'. Storing under Other.", tostring(detectedName))
             profId = 0
         end
     end
