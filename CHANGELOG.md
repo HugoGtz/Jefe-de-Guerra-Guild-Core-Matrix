@@ -1,3 +1,11 @@
+## [1.8.1](https://github.com/HugoGtz/Jefe-de-Guerra-Guild-Core-Matrix/compare/v1.8.0...v1.8.1) (2026-05-09)
+
+
+### Features
+
+* add debug mode with chat logging toggle and improve invite/formation diagnostics
+* expand install script exclusions to match pkgmeta standards
+
 ## [1.8.0](https://github.com/HugoGtz/Jefe-de-Guerra-Guild-Core-Matrix/compare/v1.7.0...v1.8.0) (2026-05-09)
 
 
